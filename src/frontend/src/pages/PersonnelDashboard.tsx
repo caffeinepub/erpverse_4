@@ -1,0 +1,294 @@
+import {
+  AlertCircle,
+  BarChart3,
+  Building2,
+  DollarSign,
+  Factory,
+  FolderKanban,
+  Handshake,
+  LogOut,
+  Package,
+  ShoppingCart,
+  User,
+  Users,
+  Workflow,
+} from "lucide-react";
+import { useState } from "react";
+import { Badge } from "../components/ui/badge";
+import { Button } from "../components/ui/button";
+
+import { useAuth } from "../contexts/AuthContext";
+import type {
+  Company,
+  CompanyMembership,
+  UserProfile,
+} from "../contexts/AuthContext";
+import { useLanguage } from "../contexts/LanguageContext";
+import AccountingModule from "../modules/AccountingModule";
+import CRMModule from "../modules/CRMModule";
+import HRModule from "../modules/HRModule";
+import InventoryModule from "../modules/InventoryModule";
+import ProductionModule from "../modules/ProductionModule";
+import ProjectsModule from "../modules/ProjectsModule";
+import PurchasingModule from "../modules/PurchasingModule";
+import ReportingModule from "../modules/ReportingModule";
+import WorkflowModule from "../modules/WorkflowModule";
+import UserProfilePage from "./UserProfilePage";
+
+interface Props {
+  user: UserProfile;
+  company: Company | null;
+  membership: CompanyMembership | null;
+  onLogout: () => void;
+}
+
+const MODULE_CONFIG: Record<
+  string,
+  { icon: React.ReactNode; color: string; bg: string }
+> = {
+  HR: {
+    icon: <Users className="w-7 h-7" />,
+    color: "text-blue-400",
+    bg: "bg-blue-500/10 border-blue-500/20",
+  },
+  Accounting: {
+    icon: <DollarSign className="w-7 h-7" />,
+    color: "text-emerald-400",
+    bg: "bg-emerald-500/10 border-emerald-500/20",
+  },
+  CRM: {
+    icon: <Handshake className="w-7 h-7" />,
+    color: "text-orange-400",
+    bg: "bg-orange-500/10 border-orange-500/20",
+  },
+  Inventory: {
+    icon: <Package className="w-7 h-7" />,
+    color: "text-amber-400",
+    bg: "bg-amber-500/10 border-amber-500/20",
+  },
+  Projects: {
+    icon: <FolderKanban className="w-7 h-7" />,
+    color: "text-purple-400",
+    bg: "bg-purple-500/10 border-purple-500/20",
+  },
+  Purchasing: {
+    icon: <ShoppingCart className="w-7 h-7" />,
+    color: "text-red-400",
+    bg: "bg-red-500/10 border-red-500/20",
+  },
+  Production: {
+    icon: <Factory className="w-7 h-7" />,
+    color: "text-slate-400",
+    bg: "bg-slate-500/10 border-slate-500/20",
+  },
+  Workflow: {
+    icon: <Workflow className="w-7 h-7" />,
+    color: "text-teal-400",
+    bg: "bg-teal-500/10 border-teal-500/20",
+  },
+  Reporting: {
+    icon: <BarChart3 className="w-7 h-7" />,
+    color: "text-indigo-400",
+    bg: "bg-indigo-500/10 border-indigo-500/20",
+  },
+};
+
+export default function PersonnelDashboard({
+  user,
+  company,
+  membership,
+  onLogout,
+}: Props) {
+  const { t } = useLanguage();
+  const { setUser } = useAuth();
+  const [activeModule, setActiveModule] = useState<string | null>(null);
+  const [showProfile, setShowProfile] = useState(false);
+
+  const grantedModules = membership?.grantedModules ?? [];
+
+  const getRoleLabel = () => {
+    if (!membership) return "";
+    const role = membership.roles[0];
+    if (!role) return "";
+    if ("CompanyManager" in role) return t("role.manager");
+    if ("CompanyAdmin" in role) return t("role.admin");
+    return t("role.employee");
+  };
+
+  if (!company || !membership) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col">
+        <header className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+          <div className="flex items-center gap-2">
+            <Building2 className="w-5 h-5 text-blue-400" />
+            <span className="text-white font-bold">ERPVerse</span>
+          </div>
+          <button
+            type="button"
+            onClick={onLogout}
+            className="text-slate-400 hover:text-white flex items-center gap-1.5"
+            data-ocid="nav.logout_button"
+          >
+            <LogOut className="w-4 h-4" />
+            {t("nav.logout")}
+          </button>
+        </header>
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="text-center max-w-md">
+            <AlertCircle className="w-12 h-12 text-amber-400 mx-auto mb-4" />
+            <p className="text-white text-lg font-semibold mb-2">
+              {user.displayName}
+            </p>
+            <p className="text-slate-400">{t("auth.noCompany")}</p>
+            <div className="mt-6 p-4 bg-slate-800 rounded-xl border border-white/5">
+              <p className="text-sm text-slate-400 mb-1">
+                {t("auth.personnelCode")}
+              </p>
+              <code className="text-purple-300 font-mono text-lg tracking-widest">
+                {user.personnelCode}
+              </code>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-900">
+      <header className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-slate-900/80 backdrop-blur-sm sticky top-0 z-10">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-blue-500/20 flex items-center justify-center">
+            <Building2 className="w-5 h-5 text-blue-400" />
+          </div>
+          <div>
+            <p className="text-white font-semibold text-sm">{company.name}</p>
+            <p className="text-xs text-slate-400">{company.sector}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="text-right">
+            <p className="text-white text-sm font-medium">{user.displayName}</p>
+            <Badge
+              variant="outline"
+              className="text-xs border-purple-500/30 text-purple-300"
+            >
+              {getRoleLabel()}
+            </Badge>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowProfile(true)}
+            className="text-slate-400 hover:text-white transition-colors flex items-center gap-1.5 text-sm"
+            data-ocid="nav.profile_link"
+          >
+            <User className="w-4 h-4" />
+            <span className="hidden sm:inline">{t("nav.profile")}</span>
+          </button>
+          <button
+            type="button"
+            onClick={onLogout}
+            className="text-slate-400 hover:text-white transition-colors flex items-center gap-1.5 text-sm"
+            data-ocid="nav.logout_button"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="hidden sm:inline">{t("nav.logout")}</span>
+          </button>
+        </div>
+      </header>
+
+      <main className="max-w-5xl mx-auto p-6">
+        <h2 className="text-2xl font-bold text-white mb-2">
+          {t("dashboard.overview")}
+        </h2>
+        <p className="text-slate-400 mb-8">
+          {grantedModules.length} {t("dashboard.activeModules").toLowerCase()}
+        </p>
+
+        {grantedModules.length === 0 ? (
+          <div className="text-center py-16" data-ocid="modules.empty_state">
+            <Package className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+            <p className="text-slate-400">{t("auth.noCompany")}</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {grantedModules.map((mod) => {
+              const config = MODULE_CONFIG[mod] || MODULE_CONFIG.HR;
+              return (
+                <button
+                  type="button"
+                  key={mod}
+                  onClick={() => setActiveModule(mod)}
+                  className={`${config.bg} border rounded-xl p-5 text-left hover:scale-[1.02] transition-all`}
+                  data-ocid={`module.${mod.toLowerCase()}_button`}
+                >
+                  <div className={`${config.color} mb-3`}>{config.icon}</div>
+                  <p className="text-white font-semibold text-sm">
+                    {t(`modules.${mod}`)}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </main>
+
+      {activeModule && (
+        <div className="fixed inset-0 z-50 bg-slate-950 overflow-auto">
+          <div className="flex items-center gap-3 px-6 py-4 border-b border-white/10 bg-slate-900/80 backdrop-blur-sm sticky top-0">
+            <button
+              type="button"
+              onClick={() => setActiveModule(null)}
+              className="text-slate-400 hover:text-white flex items-center gap-1.5 text-sm transition-colors"
+              data-ocid="module.back_button"
+            >
+              ← {t("nav.back")}
+            </button>
+            <span className="text-slate-600">|</span>
+            {MODULE_CONFIG[activeModule] && (
+              <span
+                className={`${MODULE_CONFIG[activeModule].color} flex items-center gap-2 font-semibold text-white`}
+              >
+                {MODULE_CONFIG[activeModule].icon}
+                {t(`modules.${activeModule}`)}
+              </span>
+            )}
+          </div>
+          {activeModule === "HR" && <HRModule />}
+          {activeModule === "Accounting" && <AccountingModule />}
+          {activeModule === "CRM" && <CRMModule />}
+          {activeModule === "Inventory" && <InventoryModule />}
+          {activeModule === "Projects" && <ProjectsModule />}
+          {activeModule === "Purchasing" && <PurchasingModule />}
+          {activeModule === "Production" && <ProductionModule />}
+          {activeModule === "Workflow" && <WorkflowModule />}
+          {activeModule === "Reporting" && <ReportingModule />}
+          {![
+            "HR",
+            "Accounting",
+            "CRM",
+            "Inventory",
+            "Projects",
+            "Purchasing",
+            "Production",
+            "Workflow",
+            "Reporting",
+          ].includes(activeModule) && (
+            <div className="flex items-center justify-center h-64">
+              <p className="text-slate-400">{t("module.comingSoon")}</p>
+            </div>
+          )}
+        </div>
+      )}
+      {showProfile && (
+        <div className="fixed inset-0 z-50 bg-slate-950 overflow-auto">
+          <UserProfilePage
+            user={user}
+            onBack={() => setShowProfile(false)}
+            onUpdateName={(name) => setUser({ ...user, displayName: name })}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
