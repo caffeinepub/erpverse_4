@@ -1,7 +1,14 @@
-import { ChevronDown, ChevronRight, FolderKanban, Plus } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  FolderKanban,
+  Plus,
+  Users,
+} from "lucide-react";
 import { useState } from "react";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
+import { Checkbox } from "../components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -37,6 +44,14 @@ interface Project {
   endDate: string;
   teamSize: number;
   tasks: Task[];
+  assignedPersonnel: string[];
+}
+
+interface Employee {
+  id: string;
+  name: string;
+  position?: string;
+  status?: string;
 }
 
 const STATUS_COLORS: Record<ProjectStatus, string> = {
@@ -49,8 +64,9 @@ const STATUS_COLORS: Record<ProjectStatus, string> = {
 export default function ProjectsModule() {
   const { t } = useLanguage();
   const { company } = useAuth();
+  const companyId = company?.id || "default";
   const [projects, setProjects] = useLocalStorage<Project[]>(
-    `erpverse_projects_${company?.id || "default"}`,
+    `erpverse_projects_${companyId}`,
     [],
   );
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -61,7 +77,27 @@ export default function ProjectsModule() {
     startDate: "",
     endDate: "",
     teamSize: "",
+    assignedPersonnel: [] as string[],
   });
+
+  const employees: Employee[] = (() => {
+    try {
+      return JSON.parse(
+        localStorage.getItem(`erpverse_hr_${companyId}`) || "[]",
+      );
+    } catch {
+      return [];
+    }
+  })();
+
+  const toggleEmployee = (id: string) => {
+    setForm((p) => ({
+      ...p,
+      assignedPersonnel: p.assignedPersonnel.includes(id)
+        ? p.assignedPersonnel.filter((e) => e !== id)
+        : [...p.assignedPersonnel, id],
+    }));
+  };
 
   const handleSave = () => {
     if (!form.name.trim()) return;
@@ -75,6 +111,7 @@ export default function ProjectsModule() {
         endDate: form.endDate,
         teamSize: Number(form.teamSize) || 1,
         tasks: [],
+        assignedPersonnel: form.assignedPersonnel,
       },
     ]);
     setForm({
@@ -83,6 +120,7 @@ export default function ProjectsModule() {
       startDate: "",
       endDate: "",
       teamSize: "",
+      assignedPersonnel: [],
     });
     setShowDialog(false);
   };
@@ -101,6 +139,9 @@ export default function ProjectsModule() {
       ),
     );
   };
+
+  const getEmployeeName = (id: string) =>
+    employees.find((e) => e.id === id)?.name || id;
 
   return (
     <div className="p-8">
@@ -137,6 +178,7 @@ export default function ProjectsModule() {
           projects.map((project, i) => {
             const completedTasks = project.tasks.filter((t) => t.done).length;
             const isExpanded = expanded === project.id;
+            const assigned = project.assignedPersonnel || [];
             return (
               <div
                 key={project.id}
@@ -164,6 +206,12 @@ export default function ProjectsModule() {
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
+                    {assigned.length > 0 && (
+                      <span className="flex items-center gap-1 text-xs text-indigo-300">
+                        <Users className="w-3 h-3" />
+                        {assigned.length} {t("projects.personnel")}
+                      </span>
+                    )}
                     <span className="text-xs text-slate-400">
                       {project.teamSize} {t("projects.team")}
                     </span>
@@ -182,39 +230,57 @@ export default function ProjectsModule() {
                   </div>
                 </button>
 
-                {isExpanded && project.tasks.length > 0 && (
-                  <div className="px-5 pb-4 border-t border-white/5 pt-3">
-                    <p className="text-xs text-slate-500 mb-2 font-medium uppercase tracking-wide">
-                      {t("projects.tasks")}
-                    </p>
-                    <div className="space-y-1.5">
-                      {project.tasks.map((task) => (
-                        <label
-                          key={task.id}
-                          className="flex items-center gap-2.5 cursor-pointer group"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={task.done}
-                            onChange={() => toggleTask(project.id, task.id)}
-                            className="rounded border-slate-600 bg-slate-700 text-indigo-500"
-                          />
-                          <span
-                            className={`text-sm ${task.done ? "text-slate-500 line-through" : "text-slate-300"}`}
-                          >
-                            {task.title}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {isExpanded && project.tasks.length === 0 && (
-                  <div className="px-5 pb-4 border-t border-white/5 pt-3 text-center">
-                    <p className="text-xs text-slate-600">
-                      {t("projects.tasks")}: 0
-                    </p>
+                {isExpanded && (
+                  <div className="px-5 pb-4 border-t border-white/5 pt-3 space-y-3">
+                    {assigned.length > 0 && (
+                      <div>
+                        <p className="text-xs text-slate-500 mb-1.5 font-medium uppercase tracking-wide">
+                          {t("projects.assignedPersonnel")}
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {assigned.map((id) => (
+                            <span
+                              key={id}
+                              className="text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded px-2 py-0.5"
+                            >
+                              {getEmployeeName(id)}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {project.tasks.length > 0 && (
+                      <div>
+                        <p className="text-xs text-slate-500 mb-2 font-medium uppercase tracking-wide">
+                          {t("projects.tasks")}
+                        </p>
+                        <div className="space-y-1.5">
+                          {project.tasks.map((task) => (
+                            <label
+                              key={task.id}
+                              className="flex items-center gap-2.5 cursor-pointer group"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={task.done}
+                                onChange={() => toggleTask(project.id, task.id)}
+                                className="rounded border-slate-600 bg-slate-700 text-indigo-500"
+                              />
+                              <span
+                                className={`text-sm ${task.done ? "text-slate-500 line-through" : "text-slate-300"}`}
+                              >
+                                {task.title}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {project.tasks.length === 0 && assigned.length === 0 && (
+                      <p className="text-xs text-slate-600">
+                        {t("projects.tasks")}: 0
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
@@ -320,6 +386,43 @@ export default function ProjectsModule() {
                 className="bg-white/10 border-white/20 text-white"
               />
             </div>
+            {employees.length > 0 && (
+              <div>
+                <Label className="text-slate-300 text-sm mb-2 block">
+                  {t("projects.assignPersonnel")}
+                </Label>
+                <div className="max-h-36 overflow-y-auto space-y-2 bg-slate-700/50 rounded-lg p-3">
+                  {employees
+                    .filter((e) => e.status !== "terminated")
+                    .map((emp) => (
+                      <div
+                        key={emp.id}
+                        className="flex items-center gap-2 cursor-pointer"
+                        onClick={() => toggleEmployee(emp.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ")
+                            toggleEmployee(emp.id);
+                        }}
+                      >
+                        <Checkbox
+                          checked={form.assignedPersonnel.includes(emp.id)}
+                          onCheckedChange={() => toggleEmployee(emp.id)}
+                          className="border-slate-500"
+                          data-ocid="projects.personnel_checkbox"
+                        />
+                        <span className="text-sm text-slate-300">
+                          {emp.name}
+                        </span>
+                        {emp.position && (
+                          <span className="text-xs text-slate-500">
+                            • {emp.position}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
             <div className="flex gap-2 pt-2">
               <Button
                 variant="outline"

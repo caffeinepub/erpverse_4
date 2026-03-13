@@ -1,5 +1,6 @@
 import { Handshake, Plus } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import {
@@ -41,8 +42,9 @@ const STATUS_COLORS: Record<CustomerStatus, string> = {
 export default function CRMModule() {
   const { t } = useLanguage();
   const { company } = useAuth();
+  const companyId = company?.id || "default";
   const [customers, setCustomers] = useLocalStorage<Customer[]>(
-    `erpverse_crm_${company?.id || "default"}`,
+    `erpverse_crm_${companyId}`,
     [],
   );
   const [statusFilter, setStatusFilter] = useState<CustomerStatus | "all">(
@@ -71,6 +73,40 @@ export default function CRMModule() {
 
   const handleDelete = (id: string) =>
     setCustomers((prev) => prev.filter((c) => c.id !== id));
+
+  const handleStatusChange = (
+    customerId: string,
+    newStatus: CustomerStatus,
+  ) => {
+    const customer = customers.find((c) => c.id === customerId);
+    if (!customer) return;
+    const prevStatus = customer.status;
+    setCustomers((prev) =>
+      prev.map((c) => (c.id === customerId ? { ...c, status: newStatus } : c)),
+    );
+
+    // CRM->Muhasebe integration: auto-create income when becoming active
+    if (prevStatus !== "active" && newStatus === "active") {
+      const key = `erpverse_accounting_${companyId}`;
+      const existing = (() => {
+        try {
+          return JSON.parse(localStorage.getItem(key) || "[]");
+        } catch {
+          return [];
+        }
+      })();
+      const newTx = {
+        id: Date.now().toString(),
+        type: "income",
+        description: `CRM: ${customer.name}`,
+        amount: 0,
+        date: new Date().toISOString().slice(0, 10),
+        category: "CRM",
+      };
+      localStorage.setItem(key, JSON.stringify([newTx, ...existing]));
+      toast.success(t("integration.crmIncomeCreated"));
+    }
+  };
 
   const counts = {
     all: customers.length,
@@ -172,12 +208,36 @@ export default function CRMModule() {
                     {c.phone}
                   </td>
                   <td className="px-5 py-3">
-                    <Badge
-                      variant="outline"
-                      className={`text-xs ${STATUS_COLORS[c.status]}`}
+                    <Select
+                      value={c.status}
+                      onValueChange={(v) =>
+                        handleStatusChange(c.id, v as CustomerStatus)
+                      }
                     >
-                      {t(`crm.${c.status}_status`)}
-                    </Badge>
+                      <SelectTrigger
+                        className={`h-7 text-xs border rounded px-2 w-28 ${STATUS_COLORS[c.status]} border-current bg-transparent`}
+                        data-ocid={`crm.status_select.${i + 1}`}
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-800 border-white/10">
+                        <SelectItem value="lead" className="text-white text-xs">
+                          {t("crm.lead_status")}
+                        </SelectItem>
+                        <SelectItem
+                          value="active"
+                          className="text-white text-xs"
+                        >
+                          {t("crm.active_status")}
+                        </SelectItem>
+                        <SelectItem
+                          value="closed"
+                          className="text-white text-xs"
+                        >
+                          {t("crm.closed_status")}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
                   </td>
                   <td className="px-5 py-3 text-right">
                     <button

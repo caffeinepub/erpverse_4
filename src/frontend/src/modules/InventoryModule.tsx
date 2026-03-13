@@ -1,5 +1,6 @@
 import { AlertTriangle, Package, Plus } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import {
@@ -22,13 +23,24 @@ interface Product {
   unitPrice: number;
 }
 
+interface AutoPurchaseRequest {
+  id: string;
+  productName: string;
+  productId: string;
+  currentQty: number;
+  requestedQty: number;
+  date: string;
+  status: "pending" | "approved" | "rejected";
+}
+
 const LOW_STOCK_THRESHOLD = 10;
 
 export default function InventoryModule() {
   const { t } = useLanguage();
   const { company } = useAuth();
+  const companyId = company?.id || "default";
   const [products, setProducts] = useLocalStorage<Product[]>(
-    `erpverse_inventory_${company?.id || "default"}`,
+    `erpverse_inventory_${companyId}`,
     [],
   );
   const [showDialog, setShowDialog] = useState(false);
@@ -68,6 +80,28 @@ export default function InventoryModule() {
     setShowDialog(true);
   };
 
+  const createAutoPurchaseRequest = (product: Product) => {
+    const key = `erpverse_auto_purchase_requests_${companyId}`;
+    const existing: AutoPurchaseRequest[] = JSON.parse(
+      localStorage.getItem(key) || "[]",
+    );
+    const alreadyPending = existing.some(
+      (r) => r.productId === product.id && r.status === "pending",
+    );
+    if (alreadyPending) return;
+    const newRequest: AutoPurchaseRequest = {
+      id: Date.now().toString(),
+      productName: product.name,
+      productId: product.id,
+      currentQty: product.quantity,
+      requestedQty: Math.max(50 - product.quantity, 10),
+      date: new Date().toISOString().slice(0, 10),
+      status: "pending",
+    };
+    localStorage.setItem(key, JSON.stringify([...existing, newRequest]));
+    toast.success(t("integration.autoPurchaseCreated"));
+  };
+
   const handleSave = () => {
     if (!form.name.trim()) return;
     const data = {
@@ -76,12 +110,18 @@ export default function InventoryModule() {
       quantity: Number(form.quantity) || 0,
       unitPrice: Number(form.unitPrice) || 0,
     };
+    let savedProduct: Product;
     if (editId) {
+      savedProduct = { id: editId, ...data };
       setProducts((prev) =>
         prev.map((p) => (p.id === editId ? { ...p, ...data } : p)),
       );
     } else {
-      setProducts((prev) => [...prev, { id: Date.now().toString(), ...data }]);
+      savedProduct = { id: Date.now().toString(), ...data };
+      setProducts((prev) => [...prev, savedProduct]);
+    }
+    if (savedProduct.quantity < LOW_STOCK_THRESHOLD) {
+      createAutoPurchaseRequest(savedProduct);
     }
     setShowDialog(false);
   };
@@ -125,7 +165,11 @@ export default function InventoryModule() {
           <p className="text-2xl font-bold text-blue-400">{fmt(totalValue)}</p>
         </div>
         <div
-          className={`${lowStock > 0 ? "bg-red-500/10 border-red-500/20" : "bg-emerald-500/10 border-emerald-500/20"} border rounded-xl p-4`}
+          className={`${
+            lowStock > 0
+              ? "bg-red-500/10 border-red-500/20"
+              : "bg-emerald-500/10 border-emerald-500/20"
+          } border rounded-xl p-4`}
         >
           <div className="flex items-center gap-1.5 mb-1">
             {lowStock > 0 && (
@@ -134,7 +178,9 @@ export default function InventoryModule() {
             <p className="text-slate-400 text-xs">{t("inventory.lowStock")}</p>
           </div>
           <p
-            className={`text-3xl font-bold ${lowStock > 0 ? "text-red-400" : "text-emerald-400"}`}
+            className={`text-3xl font-bold ${
+              lowStock > 0 ? "text-red-400" : "text-emerald-400"
+            }`}
           >
             {lowStock}
           </p>
@@ -183,7 +229,11 @@ export default function InventoryModule() {
               products.map((p, i) => (
                 <tr
                   key={p.id}
-                  className={`border-b border-white/5 last:border-0 ${p.quantity < LOW_STOCK_THRESHOLD ? "bg-red-500/5" : "hover:bg-white/2"}`}
+                  className={`border-b border-white/5 last:border-0 ${
+                    p.quantity < LOW_STOCK_THRESHOLD
+                      ? "bg-red-500/5"
+                      : "hover:bg-white/2"
+                  }`}
                   data-ocid={`inventory.row.${i + 1}`}
                 >
                   <td className="px-5 py-3">
@@ -203,7 +253,11 @@ export default function InventoryModule() {
                     {p.category}
                   </td>
                   <td
-                    className={`px-5 py-3 text-right font-semibold text-sm ${p.quantity < LOW_STOCK_THRESHOLD ? "text-red-400" : "text-slate-300"}`}
+                    className={`px-5 py-3 text-right font-semibold text-sm ${
+                      p.quantity < LOW_STOCK_THRESHOLD
+                        ? "text-red-400"
+                        : "text-slate-300"
+                    }`}
                   >
                     {p.quantity}
                   </td>

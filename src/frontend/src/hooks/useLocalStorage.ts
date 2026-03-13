@@ -22,8 +22,6 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
       console.error(error);
     }
   };
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: only re-run when key changes
   useEffect(() => {
     try {
       const item = window.localStorage.getItem(key);

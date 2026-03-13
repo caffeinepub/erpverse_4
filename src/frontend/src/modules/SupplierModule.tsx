@@ -89,6 +89,7 @@ const EMPTY_FORM: Omit<Supplier, "id"> = {
 };
 
 interface Props {
+  onViewOrders?: (supplier: Supplier) => void;
   suppliers: Supplier[];
   onAdd: (s: Supplier) => void;
   onUpdate: (s: Supplier) => void;
@@ -100,6 +101,7 @@ export default function SupplierModule({
   onAdd,
   onUpdate,
   onDelete,
+  onViewOrders,
 }: Props) {
   const { t } = useLanguage();
   const [showDialog, setShowDialog] = useState(false);
@@ -228,6 +230,26 @@ export default function SupplierModule({
                   </td>
                   <td className="px-5 py-3">
                     <div className="flex items-center justify-end gap-2">
+                      {onViewOrders && (
+                        <button
+                          type="button"
+                          onClick={() => onViewOrders(s)}
+                          className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors px-2 py-1 rounded border border-indigo-500/30 bg-indigo-500/10"
+                          data-ocid={`supplier.view_orders_button.${i + 1}`}
+                        >
+                          {t("supplier.viewOrders")}
+                        </button>
+                      )}
+                      {onViewOrders && (
+                        <button
+                          type="button"
+                          onClick={() => onViewOrders(s)}
+                          className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors px-2 py-1 rounded border border-indigo-500/30 bg-indigo-500/10"
+                          data-ocid={`supplier.view_orders_button.${i + 1}`}
+                        >
+                          {t("supplier.viewOrders")}
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => openEdit(s)}

@@ -1,30 +1,33 @@
 # ERPVerse
 
 ## Current State
-All ERP modules (HR, Accounting, CRM, Inventory, Projects, Purchasing, Suppliers, Production, Workflow) store their data in React `useState([])` with no persistence. Data is lost on page refresh or navigation. ReportingModule shows hardcoded static values instead of reading from real module data.
+
+ERPVerse is a full-stack ERP platform with 12 implemented modules: HR, Muhasebe, CRM, Envanter, Projeler, Satın Alma, Üretim, İş Akışı, Raporlama, Kalite, Depo, Bütçe. Supports 8 languages, multi-company access, role/permission matrix, notification system, approval workflows, audit logging, cross-module integrations, and PDF/Excel export.
 
 ## Requested Changes (Diff)
 
 ### Add
-- `useLocalStorage<T>(key: string, initial: T)` hook in `src/hooks/useLocalStorage.ts` — persists state to localStorage, reads on mount, writes on change
-- Company-scoped storage keys for all modules (format: `erpverse_{module}_{companyId}`)
+- **Varlık Yönetimi (Asset Management)** module: Track company assets (equipment, vehicles, IT hardware, etc.) with fields for asset name, category, serial number, purchase date, purchase value, current value (depreciation), location, assigned personnel, and status (active/maintenance/retired). Support add/edit/delete, depreciation calculation, maintenance history log per asset.
+- **Müşteri Hizmetleri (Customer Service)** module: Support ticket management with fields for ticket number (auto), customer name, subject, description, priority (low/medium/high/critical), status (open/in-progress/resolved/closed), assigned personnel, created date, resolution notes. Support add/edit/delete, filtering by status and priority, basic SLA indicator (overdue flag if open > 3 days).
+- Both modules integrated into OwnerDashboard and PersonnelDashboard module lists (with permission matrix support)
+- Both modules added to Raporlama aggregation (asset count/value, ticket counts by status)
+- Both modules use localStorage persistence
+- All strings translated via t() in LanguageContext for all 8 languages
 
 ### Modify
-- **HRModule**: replace `useState<Employee[]>([])` with `useLocalStorage` using key `erpverse_hr_{companyId}`
-- **AccountingModule**: replace `useState<Transaction[]>([])` with `useLocalStorage` using key `erpverse_accounting_{companyId}`
-- **CRMModule**: replace `useState<Customer[]>([])` with `useLocalStorage` using key `erpverse_crm_{companyId}`
-- **InventoryModule**: replace `useState<Product[]>([])` with `useLocalStorage` using key `erpverse_inventory_{companyId}`
-- **ProjectsModule**: replace `useState<Project[]>([])` with `useLocalStorage` using key `erpverse_projects_{companyId}`
-- **PurchasingModule**: replace `useState<Supplier[]>([])` and `useState<PurchaseOrder[]>([])` with `useLocalStorage` using keys `erpverse_purchasing_suppliers_{companyId}` and `erpverse_purchasing_orders_{companyId}`
-- **SupplierModule**: replace supplier state with `useLocalStorage` using key `erpverse_suppliers_{companyId}`
-- **ProductionModule**: replace `useState<ProductionOrder[]>([])` with `useLocalStorage` using key `erpverse_production_{companyId}`
-- **WorkflowModule**: replace `useState<WorkflowTask[]>([])` with `useLocalStorage` using key `erpverse_workflow_{companyId}`
-- **ReportingModule**: remove all hardcoded static data; read real data from localStorage keys for each module and compute actual stats (employee count, active employees, transaction totals, customer count, product count, project count, order count, task count). Show real KPI cards and a summary of module record counts instead of fake charts.
+- OwnerDashboard: add Varlık and Müşteri Hizmetleri to module navigation list and permission matrix
+- PersonnelDashboard: add both modules to module navigation
+- ReportingModule: include asset and support ticket summaries
+- LanguageContext: add translation keys for both new modules in all 8 languages
 
 ### Remove
-- Hardcoded `MONTHLY_DATA` and `MODULE_USAGE` constants in ReportingModule
+- Nothing removed
 
 ## Implementation Plan
-1. Create `useLocalStorage` hook that accepts a key and default value, reads from localStorage on init, and syncs writes back
-2. Update each module to use `useLocalStorage` for their primary data arrays, scoped by `company?.id`
-3. Rewrite ReportingModule to read all module data from localStorage and display real computed stats
+
+1. Create `AssetModule.tsx` with full CRUD, depreciation display, maintenance log
+2. Create `CustomerServiceModule.tsx` with ticket CRUD, filtering, overdue flag
+3. Update OwnerDashboard to include both modules in navigation and role/permission matrix
+4. Update PersonnelDashboard to include both modules
+5. Update ReportingModule to show asset and ticket summaries
+6. Update LanguageContext with all translation keys for both modules in 8 languages

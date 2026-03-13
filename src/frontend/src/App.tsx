@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
+import { AuditLogProvider } from "./contexts/AuditLogContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import type { PortalType } from "./contexts/AuthContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
+import { NotificationProvider } from "./contexts/NotificationContext";
 import { useActor } from "./hooks/useActor";
 import AuthPage from "./pages/AuthPage";
 import CodeShownPage from "./pages/CodeShownPage";
@@ -66,7 +68,6 @@ function AppContent() {
       setMembership({
         companyId: m.companyId,
         userId: m.userId,
-        // biome-ignore lint/suspicious/noExplicitAny: type conversion
         roles: m.roles as any,
         grantedModules: m.grantedModules,
         addedAt: m.addedAt.toString(),
@@ -79,7 +80,7 @@ function AppContent() {
 
   // Verify that the cached user still exists in the canister.
   // If not (e.g. canister was redeployed and state was reset), clear stale session.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional – only run once when actor becomes ready
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional
   useEffect(() => {
     if (!actor) return;
     if (!user) {
@@ -133,6 +134,11 @@ function AppContent() {
     logout();
     setView("landing");
     setNewUserData(null);
+  };
+  const handleSwitchCompany = () => {
+    setCompany(null);
+    setMembership(null);
+    setView("company-select");
   };
 
   // Show spinner while verifying stored session against the canister
@@ -221,6 +227,7 @@ function AppContent() {
           company={company}
           membership={membership}
           onLogout={handleLogout}
+          onSwitchCompany={handleSwitchCompany}
         />
       )}
       {view === "personnel-dashboard" && user && (
@@ -229,6 +236,7 @@ function AppContent() {
           company={company}
           membership={membership}
           onLogout={handleLogout}
+          onSwitchCompany={handleSwitchCompany}
         />
       )}
     </div>
@@ -239,7 +247,11 @@ export default function App() {
   return (
     <LanguageProvider>
       <AuthProvider>
-        <AppContent />
+        <NotificationProvider>
+          <AuditLogProvider>
+            <AppContent />
+          </AuditLogProvider>
+        </NotificationProvider>
       </AuthProvider>
     </LanguageProvider>
   );

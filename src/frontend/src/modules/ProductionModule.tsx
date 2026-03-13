@@ -1,5 +1,6 @@
 import { Factory, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import {
@@ -32,6 +33,14 @@ interface ProductionOrder {
   status: ProdStatus;
 }
 
+interface InventoryProduct {
+  id: string;
+  name: string;
+  quantity: number;
+  unitPrice: number;
+  category: string;
+}
+
 function statusBadge(status: ProdStatus, t: (k: string) => string) {
   const map: Record<ProdStatus, string> = {
     planned: "bg-slate-500/15 text-slate-300 border-slate-500/30",
@@ -48,17 +57,32 @@ function statusBadge(status: ProdStatus, t: (k: string) => string) {
 export default function ProductionModule() {
   const { t } = useLanguage();
   const { company } = useAuth();
+  const companyId = company?.id || "default";
   const [orders, setOrders] = useLocalStorage<ProductionOrder[]>(
-    `erpverse_production_${company?.id || "default"}`,
+    `erpverse_production_${companyId}`,
     [],
   );
   const [showDialog, setShowDialog] = useState(false);
+  const [deductionOrder, setDeductionOrder] = useState<ProductionOrder | null>(
+    null,
+  );
+  const [deductions, setDeductions] = useState<Record<string, number>>({});
   const [form, setForm] = useState({
     product: "",
     quantity: "",
     startDate: "",
     status: "planned" as ProdStatus,
   });
+
+  const inventoryProducts: InventoryProduct[] = (() => {
+    try {
+      return JSON.parse(
+        localStorage.getItem(`erpverse_inventory_${companyId}`) || "[]",
+      );
+    } catch {
+      return [];
+    }
+  })();
 
   const inProgressCount = orders.filter(
     (o) => o.status === "inProgress",
@@ -84,6 +108,42 @@ export default function ProductionModule() {
 
   const handleDelete = (id: string) =>
     setOrders((prev) => prev.filter((o) => o.id !== id));
+
+  const handleStatusChange = (orderId: string, newStatus: ProdStatus) => {
+    const order = orders.find((o) => o.id === orderId);
+    if (!order) return;
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === orderId
+          ? {
+              ...o,
+              status: newStatus,
+              progress:
+                newStatus === "completed"
+                  ? 100
+                  : newStatus === "inProgress"
+                    ? 50
+                    : 0,
+            }
+          : o,
+      ),
+    );
+    if (newStatus === "completed" && inventoryProducts.length > 0) {
+      setDeductionOrder({ ...order, status: newStatus });
+      setDeductions({});
+    }
+  };
+
+  const handleConfirmDeduction = () => {
+    const key = `erpverse_inventory_${companyId}`;
+    const updated = inventoryProducts.map((p) => ({
+      ...p,
+      quantity: Math.max(0, p.quantity - (deductions[p.id] || 0)),
+    }));
+    localStorage.setItem(key, JSON.stringify(updated));
+    toast.success(t("integration.inventoryDeducted"));
+    setDeductionOrder(null);
+  };
 
   return (
     <div className="p-8">
@@ -111,7 +171,6 @@ export default function ProductionModule() {
         </Button>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-slate-800 rounded-xl p-4 border border-white/5">
           <p className="text-slate-400 text-xs mb-1">Toplam</p>
@@ -133,7 +192,6 @@ export default function ProductionModule() {
         </div>
       </div>
 
-      {/* Table */}
       {orders.length === 0 ? (
         <div
           className="text-center py-16 text-slate-500"
@@ -192,7 +250,41 @@ export default function ProductionModule() {
                       </span>
                     </div>
                   </td>
-                  <td className="px-5 py-3">{statusBadge(order.status, t)}</td>
+                  <td className="px-5 py-3">
+                    <Select
+                      value={order.status}
+                      onValueChange={(v) =>
+                        handleStatusChange(order.id, v as ProdStatus)
+                      }
+                    >
+                      <SelectTrigger
+                        className="h-7 w-32 bg-transparent border-0 p-0"
+                        data-ocid={`production.status_select.${i + 1}`}
+                      >
+                        {statusBadge(order.status, t)}
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-800 border-white/10">
+                        <SelectItem
+                          value="planned"
+                          className="text-white text-xs"
+                        >
+                          {t("production.planned")}
+                        </SelectItem>
+                        <SelectItem
+                          value="inProgress"
+                          className="text-white text-xs"
+                        >
+                          {t("production.inProgress")}
+                        </SelectItem>
+                        <SelectItem
+                          value="completed"
+                          className="text-white text-xs"
+                        >
+                          {t("production.completed")}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </td>
                   <td className="px-5 py-3 text-right">
                     <button
                       type="button"
@@ -210,6 +302,7 @@ export default function ProductionModule() {
         </div>
       )}
 
+      {/* Add Order Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent
           className="bg-slate-800 border-white/10 text-white max-w-md"
@@ -304,6 +397,77 @@ export default function ProductionModule() {
                 {t("production.addOrder")}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Material Deduction Dialog */}
+      <Dialog
+        open={!!deductionOrder}
+        onOpenChange={(open) => {
+          if (!open) setDeductionOrder(null);
+        }}
+      >
+        <DialogContent
+          className="bg-slate-800 border-white/10 text-white max-w-md"
+          data-ocid="production.deduction.dialog"
+        >
+          <DialogHeader>
+            <DialogTitle className="text-white">
+              {t("production.materialDeduction")}
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-slate-400 text-sm mb-4">
+            Üretim tamamlandı:{" "}
+            <span className="text-white font-medium">
+              {deductionOrder?.product}
+            </span>
+            . Kullanılan malzemeleri girin:
+          </p>
+          <div className="space-y-3 max-h-60 overflow-y-auto">
+            {inventoryProducts.map((p) => (
+              <div
+                key={p.id}
+                className="flex items-center justify-between gap-4"
+              >
+                <span className="text-sm text-slate-300 flex-1">{p.name}</span>
+                <span className="text-xs text-slate-500 w-16">
+                  Stok: {p.quantity}
+                </span>
+                <Input
+                  type="number"
+                  min={0}
+                  max={p.quantity}
+                  value={deductions[p.id] || ""}
+                  onChange={(e) =>
+                    setDeductions((d) => ({
+                      ...d,
+                      [p.id]: Number(e.target.value),
+                    }))
+                  }
+                  placeholder="0"
+                  className="bg-slate-700 border-white/10 text-white w-24 h-8 text-sm"
+                  data-ocid="production.deduction.input"
+                />
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2 pt-4">
+            <Button
+              variant="outline"
+              className="flex-1 border-white/20 text-slate-300"
+              onClick={() => setDeductionOrder(null)}
+              data-ocid="production.deduction.cancel_button"
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+              onClick={handleConfirmDeduction}
+              data-ocid="production.deduction.confirm_button"
+            >
+              {t("production.confirmDeduction")}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

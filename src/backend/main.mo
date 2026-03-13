@@ -165,11 +165,13 @@ actor ERPVerse {
     ?profile
   };
 
-  public query func loginWithCode(loginCode : Text) : async ?UserProfile {
+  // Update call (not query) so it always reads from committed state after registration
+  public func loginWithCode(loginCode : Text) : async ?UserProfile {
     _usersByLoginCode.get(loginCode)
   };
 
-  public query func getUserProfile(userId : UserId) : async ?UserProfile {
+  // Update call (not query) for consistent reads after state changes
+  public func getUserProfile(userId : UserId) : async ?UserProfile {
     _usersById.get(userId)
   };
 
@@ -215,7 +217,8 @@ actor ERPVerse {
     _companiesById.get(companyId)
   };
 
-  public query func getCompanyMemberships(userId : UserId) : async [CompanyMembership] {
+  // Update call for consistent reads after addPersonnelToCompany
+  public func getCompanyMemberships(userId : UserId) : async [CompanyMembership] {
     let companyIds = switch (_userCompanies.get(userId)) {
       case (?arr) arr;
       case null [];
@@ -225,7 +228,8 @@ actor ERPVerse {
     })
   };
 
-  public query func getUserCompanies(userId : UserId) : async [Company] {
+  // Update call for consistent reads after company registration
+  public func getUserCompanies(userId : UserId) : async [Company] {
     let companyIds = switch (_userCompanies.get(userId)) {
       case (?arr) arr;
       case null [];

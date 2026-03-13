@@ -6,17 +6,23 @@ import {
   Factory,
   FolderKanban,
   Handshake,
+  HardDrive,
+  Headphones,
   LogOut,
   Package,
+  PiggyBank,
+  ShieldAlert,
   ShoppingCart,
   User,
   Users,
+  Warehouse as WarehouseIcon,
   Workflow,
 } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 
+import NotificationBell from "../components/NotificationBell";
 import { useAuth } from "../contexts/AuthContext";
 import type {
   Company,
@@ -25,13 +31,18 @@ import type {
 } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import AccountingModule from "../modules/AccountingModule";
+import AssetModule from "../modules/AssetModule";
+import BudgetModule from "../modules/BudgetModule";
 import CRMModule from "../modules/CRMModule";
+import CustomerServiceModule from "../modules/CustomerServiceModule";
 import HRModule from "../modules/HRModule";
 import InventoryModule from "../modules/InventoryModule";
 import ProductionModule from "../modules/ProductionModule";
 import ProjectsModule from "../modules/ProjectsModule";
 import PurchasingModule from "../modules/PurchasingModule";
+import QualityModule from "../modules/QualityModule";
 import ReportingModule from "../modules/ReportingModule";
+import WarehouseModule from "../modules/WarehouseModule";
 import WorkflowModule from "../modules/WorkflowModule";
 import UserProfilePage from "./UserProfilePage";
 
@@ -40,6 +51,7 @@ interface Props {
   company: Company | null;
   membership: CompanyMembership | null;
   onLogout: () => void;
+  onSwitchCompany?: () => void;
 }
 
 const MODULE_CONFIG: Record<
@@ -86,10 +98,35 @@ const MODULE_CONFIG: Record<
     color: "text-teal-400",
     bg: "bg-teal-500/10 border-teal-500/20",
   },
+  Quality: {
+    icon: <ShieldAlert className="w-7 h-7" />,
+    color: "text-rose-400",
+    bg: "bg-rose-500/10 border-rose-500/20",
+  },
+  Warehouse: {
+    icon: <WarehouseIcon className="w-7 h-7" />,
+    color: "text-cyan-400",
+    bg: "bg-cyan-500/10 border-cyan-500/20",
+  },
+  Budget: {
+    icon: <PiggyBank className="w-7 h-7" />,
+    color: "text-violet-400",
+    bg: "bg-violet-500/10 border-violet-500/20",
+  },
   Reporting: {
     icon: <BarChart3 className="w-7 h-7" />,
     color: "text-indigo-400",
     bg: "bg-indigo-500/10 border-indigo-500/20",
+  },
+  Assets: {
+    icon: <HardDrive className="w-7 h-7" />,
+    color: "text-orange-400",
+    bg: "bg-orange-500/10 border-orange-500/20",
+  },
+  CustomerService: {
+    icon: <Headphones className="w-7 h-7" />,
+    color: "text-sky-400",
+    bg: "bg-sky-500/10 border-sky-500/20",
   },
 };
 
@@ -98,6 +135,7 @@ export default function PersonnelDashboard({
   company,
   membership,
   onLogout,
+  onSwitchCompany,
 }: Props) {
   const { t } = useLanguage();
   const { setUser } = useAuth();
@@ -176,6 +214,7 @@ export default function PersonnelDashboard({
               {getRoleLabel()}
             </Badge>
           </div>
+          <NotificationBell />
           <button
             type="button"
             onClick={() => setShowProfile(true)}
@@ -185,6 +224,17 @@ export default function PersonnelDashboard({
             <User className="w-4 h-4" />
             <span className="hidden sm:inline">{t("nav.profile")}</span>
           </button>
+          {onSwitchCompany && (
+            <button
+              type="button"
+              onClick={onSwitchCompany}
+              className="text-slate-400 hover:text-white transition-colors flex items-center gap-1.5 text-sm"
+              data-ocid="nav.switch_company_button"
+            >
+              <Building2 className="w-4 h-4" />
+              <span className="hidden sm:inline">{t("nav.switchCompany")}</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={onLogout}
@@ -263,6 +313,11 @@ export default function PersonnelDashboard({
           {activeModule === "Production" && <ProductionModule />}
           {activeModule === "Workflow" && <WorkflowModule />}
           {activeModule === "Reporting" && <ReportingModule />}
+          {activeModule === "Quality" && <QualityModule />}
+          {activeModule === "Warehouse" && <WarehouseModule />}
+          {activeModule === "Budget" && <BudgetModule />}
+          {activeModule === "Assets" && <AssetModule />}
+          {activeModule === "CustomerService" && <CustomerServiceModule />}
           {![
             "HR",
             "Accounting",
@@ -273,6 +328,11 @@ export default function PersonnelDashboard({
             "Production",
             "Workflow",
             "Reporting",
+            "Quality",
+            "Warehouse",
+            "Budget",
+            "Assets",
+            "CustomerService",
           ].includes(activeModule) && (
             <div className="flex items-center justify-center h-64">
               <p className="text-slate-400">{t("module.comingSoon")}</p>

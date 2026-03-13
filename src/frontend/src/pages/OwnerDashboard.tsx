@@ -2,23 +2,32 @@ import {
   BarChart3,
   Building2,
   CheckSquare,
+  ClipboardList,
   DollarSign,
   Factory,
   FolderKanban,
   Handshake,
+  HardDrive,
+  Headphones,
   LayoutDashboard,
   LogOut,
   Package,
+  PiggyBank,
   Settings,
+  ShieldAlert,
+  ShieldCheck,
   ShoppingCart,
   Trash2,
   User,
   UserPlus,
   Users,
   Users2,
+  Warehouse as WarehouseIcon,
   Workflow,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import AuditLogPanel from "../components/AuditLogPanel";
+import NotificationBell from "../components/NotificationBell";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Checkbox } from "../components/ui/checkbox";
@@ -39,13 +48,18 @@ import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useActor } from "../hooks/useActor";
 import AccountingModule from "../modules/AccountingModule";
+import AssetModule from "../modules/AssetModule";
+import BudgetModule from "../modules/BudgetModule";
 import CRMModule from "../modules/CRMModule";
+import CustomerServiceModule from "../modules/CustomerServiceModule";
 import HRModule from "../modules/HRModule";
 import InventoryModule from "../modules/InventoryModule";
 import ProductionModule from "../modules/ProductionModule";
 import ProjectsModule from "../modules/ProjectsModule";
 import PurchasingModule from "../modules/PurchasingModule";
+import QualityModule from "../modules/QualityModule";
 import ReportingModule from "../modules/ReportingModule";
+import WarehouseModule from "../modules/WarehouseModule";
 import WorkflowModule from "../modules/WorkflowModule";
 import UserProfilePage from "./UserProfilePage";
 
@@ -63,7 +77,14 @@ type Tab =
   | "production"
   | "workflow"
   | "reporting"
-  | "profile";
+  | "profile"
+  | "permissions"
+  | "auditlog"
+  | "quality"
+  | "warehouse"
+  | "budget"
+  | "assets"
+  | "customerservice";
 
 const ALL_MODULES = [
   "HR",
@@ -75,6 +96,11 @@ const ALL_MODULES = [
   "Production",
   "Workflow",
   "Reporting",
+  "Quality",
+  "Warehouse",
+  "Budget",
+  "Assets",
+  "CustomerService",
 ];
 
 const ROLES = [
@@ -83,11 +109,53 @@ const ROLES = [
   { key: "CompanyEmployee", labelKey: "role.employee" },
 ];
 
+const ROLE_PERMISSION_KEYS = [
+  "CompanyManager",
+  "CompanyAdmin",
+  "CompanyEmployee",
+] as const;
+type RoleKey = (typeof ROLE_PERMISSION_KEYS)[number];
+
+function getRolePermissions(companyId: string): Record<RoleKey, string[]> {
+  try {
+    const stored = localStorage.getItem(
+      `erpverse_role_permissions_${companyId}`,
+    );
+    if (stored) return JSON.parse(stored);
+  } catch {}
+  return {
+    CompanyManager: [...ALL_MODULES],
+    CompanyAdmin: ALL_MODULES.filter((m) => m !== "Reporting"),
+    CompanyEmployee: [],
+  };
+}
+
+function saveRolePermissions(
+  companyId: string,
+  perms: Record<RoleKey, string[]>,
+) {
+  localStorage.setItem(
+    `erpverse_role_permissions_${companyId}`,
+    JSON.stringify(perms),
+  );
+}
+
+function getModulesForRoles(roles: string[], companyId: string): string[] {
+  const perms = getRolePermissions(companyId);
+  const mods = new Set<string>();
+  for (const role of roles) {
+    const roleMods = perms[role as RoleKey] ?? [];
+    for (const m of roleMods) mods.add(m);
+  }
+  return Array.from(mods);
+}
+
 interface Props {
   user: UserProfile;
   company: Company;
   membership: CompanyMembership;
   onLogout: () => void;
+  onSwitchCompany?: () => void;
 }
 
 export default function OwnerDashboard({
@@ -95,6 +163,7 @@ export default function OwnerDashboard({
   company,
   membership: _membership,
   onLogout,
+  onSwitchCompany,
 }: Props) {
   const { t } = useLanguage();
   const { setUser } = useAuth();
@@ -114,6 +183,10 @@ export default function OwnerDashboard({
     {},
   );
   const [savingModules, setSavingModules] = useState<string | null>(null);
+  const [rolePermissions, setRolePermissions] = useState<
+    Record<string, string[]>
+  >(() => getRolePermissions(company.id));
+  const [permSaved, setPermSaved] = useState(false);
 
   const loadMembers = useCallback(async () => {
     if (!actor) return;
@@ -148,6 +221,12 @@ export default function OwnerDashboard({
     if (tab === "personnel" || tab === "modules") loadMembers();
   }, [tab, loadMembers]);
 
+  useEffect(() => {
+    if (showAddDialog) {
+      setNewModules(getModulesForRoles(newRoles, company.id));
+    }
+  }, [newRoles, showAddDialog, company.id]);
+
   const handleAddPersonnel = async () => {
     if (!actor || !newPersonnelCode.trim()) return;
     setAddLoading(true);
@@ -160,7 +239,6 @@ export default function OwnerDashboard({
         user.id,
         newPersonnelCode.trim().toUpperCase(),
         company.id,
-        // biome-ignore lint/suspicious/noExplicitAny: dynamic
         roles as any,
         newModules,
       );
@@ -231,6 +309,11 @@ export default function OwnerDashboard({
       icon: <CheckSquare className="w-5 h-5" />,
     },
     {
+      id: "permissions",
+      labelKey: "permissions.title",
+      icon: <ShieldCheck className="w-5 h-5 text-emerald-400" />,
+    },
+    {
       id: "settings",
       labelKey: "dashboard.settings",
       icon: <Settings className="w-5 h-5" />,
@@ -280,6 +363,36 @@ export default function OwnerDashboard({
       labelKey: "modules.Reporting",
       icon: <BarChart3 className="w-5 h-5 text-indigo-400" />,
     },
+    {
+      id: "auditlog",
+      labelKey: "auditlog.title",
+      icon: <ClipboardList className="w-5 h-5 text-violet-400" />,
+    },
+    {
+      id: "quality" as Tab,
+      labelKey: "modules.Quality",
+      icon: <ShieldAlert className="w-5 h-5 text-rose-400" />,
+    },
+    {
+      id: "warehouse" as Tab,
+      labelKey: "modules.Warehouse",
+      icon: <WarehouseIcon className="w-5 h-5 text-cyan-400" />,
+    },
+    {
+      id: "budget" as Tab,
+      labelKey: "modules.Budget",
+      icon: <PiggyBank className="w-5 h-5 text-violet-400" />,
+    },
+    {
+      id: "assets" as Tab,
+      labelKey: "modules.Assets",
+      icon: <HardDrive className="w-5 h-5 text-orange-400" />,
+    },
+    {
+      id: "customerservice" as Tab,
+      labelKey: "modules.CustomerService",
+      icon: <Headphones className="w-5 h-5 text-sky-400" />,
+    },
   ];
 
   return (
@@ -312,7 +425,12 @@ export default function OwnerDashboard({
         </nav>
         <div className="p-3 border-t border-sidebar-border">
           <div className="px-3 py-2 mb-2">
-            <p className="text-white text-sm font-medium">{user.displayName}</p>
+            <div className="flex items-center justify-between">
+              <p className="text-white text-sm font-medium">
+                {user.displayName}
+              </p>
+              <NotificationBell />
+            </div>
             <Badge
               variant="secondary"
               className="text-xs mt-1 bg-blue-500/20 text-blue-300 border-0"
@@ -333,6 +451,17 @@ export default function OwnerDashboard({
             <User className="w-4 h-4" />
             {t("nav.profile")}
           </button>
+          {onSwitchCompany && (
+            <button
+              type="button"
+              onClick={onSwitchCompany}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+              data-ocid="nav.switch_company_button"
+            >
+              <Building2 className="w-4 h-4" />
+              {t("nav.switchCompany")}
+            </button>
+          )}
           <button
             type="button"
             onClick={onLogout}
@@ -585,6 +714,100 @@ export default function OwnerDashboard({
           </div>
         )}
 
+        {tab === "permissions" && (
+          <div className="p-8">
+            <h2 className="text-2xl font-bold text-white mb-1">
+              {t("permissions.title")}
+            </h2>
+            <p className="text-slate-400 mb-2 text-sm">
+              {t("permissions.subtitle")}
+            </p>
+            <p className="text-slate-500 mb-6 text-xs">
+              {t("permissions.hint")}
+            </p>
+            <div className="bg-slate-800 rounded-xl border border-white/5 overflow-auto mb-4">
+              <table className="w-full min-w-max">
+                <thead>
+                  <tr className="border-b border-white/5">
+                    <th className="text-left text-slate-400 text-sm font-medium px-5 py-3 sticky left-0 bg-slate-800 min-w-[160px]">
+                      {t("personnel.role")}
+                    </th>
+                    {ALL_MODULES.map((mod) => (
+                      <th
+                        key={mod}
+                        className="text-center text-slate-400 text-xs font-medium px-3 py-3 min-w-[90px]"
+                      >
+                        {t(`modules.${mod}`)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {ROLES.map((role, i) => {
+                    const currentMods = rolePermissions[role.key] ?? [];
+                    return (
+                      <tr
+                        key={role.key}
+                        className="border-b border-white/5 last:border-0"
+                        data-ocid={`permissions.row.${i + 1}`}
+                      >
+                        <td className="px-5 py-3 sticky left-0 bg-slate-800">
+                          <p className="text-white text-sm font-medium">
+                            {t(role.labelKey)}
+                          </p>
+                        </td>
+                        {ALL_MODULES.map((mod) => (
+                          <td key={mod} className="px-3 py-3 text-center">
+                            <Checkbox
+                              checked={currentMods.includes(mod)}
+                              onCheckedChange={(checked) => {
+                                const updated = checked
+                                  ? [...currentMods, mod]
+                                  : currentMods.filter((m) => m !== mod);
+                                setRolePermissions((prev) => ({
+                                  ...prev,
+                                  [role.key]: updated,
+                                }));
+                                setPermSaved(false);
+                              }}
+                              className="border-slate-600"
+                              data-ocid={`permissions.module_checkbox.${i + 1}`}
+                            />
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                onClick={() => {
+                  saveRolePermissions(
+                    company.id,
+                    rolePermissions as Record<RoleKey, string[]>,
+                  );
+                  setPermSaved(true);
+                  setTimeout(() => setPermSaved(false), 3000);
+                }}
+                data-ocid="permissions.save_button"
+              >
+                {t("common.save")}
+              </Button>
+              {permSaved && (
+                <span
+                  className="text-emerald-400 text-sm"
+                  data-ocid="permissions.success_state"
+                >
+                  ✓ {t("permissions.saveSuccess")}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         {tab === "settings" && (
           <div className="p-8">
             <h2 className="text-2xl font-bold text-white mb-6">
@@ -623,6 +846,12 @@ export default function OwnerDashboard({
         {tab === "production" && <ProductionModule />}
         {tab === "workflow" && <WorkflowModule />}
         {tab === "reporting" && <ReportingModule />}
+        {tab === "auditlog" && <AuditLogPanel />}
+        {tab === "quality" && <QualityModule />}
+        {tab === "warehouse" && <WarehouseModule />}
+        {tab === "budget" && <BudgetModule />}
+        {tab === "assets" && <AssetModule />}
+        {tab === "customerservice" && <CustomerServiceModule />}
         {tab === "profile" && (
           <UserProfilePage
             user={user}
