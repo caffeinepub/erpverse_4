@@ -1,4 +1,10 @@
-import { ArrowRightLeft, MapPin, Plus, Warehouse } from "lucide-react";
+import {
+  ArrowRightLeft,
+  ClipboardList,
+  MapPin,
+  Plus,
+  Warehouse,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "../components/ui/badge";
@@ -69,6 +75,18 @@ export default function WarehouseModule() {
     `erp_warehouse_transfers_${cid}`,
     [],
   );
+  const [reservations, setReservations] = useLocalStorage<
+    Array<{
+      id: string;
+      productionOrderId: string;
+      productionOrderName: string;
+      materialName: string;
+      quantity: number;
+      unit: string;
+      reservedAt: string;
+      status: string;
+    }>
+  >(`erp_warehouse_reservations_${cid}`, []);
 
   const [showLocDialog, setShowLocDialog] = useState(false);
   const [editLocId, setEditLocId] = useState<string | null>(null);
@@ -190,14 +208,32 @@ export default function WarehouseModule() {
       quantity: Number(transferForm.quantity),
       status: transferForm.status,
     };
+    const syncInventory = (d: TransferOrder) => {
+      if (d.status === "completed") {
+        try {
+          const invKey = `erpverse_inventory_${cid}`;
+          const inventory = JSON.parse(localStorage.getItem(invKey) || "[]");
+          const updated = inventory.map(
+            (item: { name: string; quantity: number }) =>
+              item.name.toLowerCase() === d.product.toLowerCase()
+                ? { ...item, quantity: (item.quantity || 0) + d.quantity }
+                : item,
+          );
+          localStorage.setItem(invKey, JSON.stringify(updated));
+          toast.success(t("integration.warehouseInventorySync"));
+        } catch (_) {}
+      }
+    };
     if (editTransferId) {
       setTransfers((prev) =>
         prev.map((tr) => (tr.id === editTransferId ? data : tr)),
       );
-      toast.success(t("common.updated"));
+      syncInventory(data);
+      if (data.status !== "completed") toast.success(t("common.updated"));
     } else {
       setTransfers((prev) => [...prev, data]);
-      toast.success(t("common.added"));
+      syncInventory(data);
+      if (data.status !== "completed") toast.success(t("common.added"));
     }
     setShowTransferDialog(false);
   };
@@ -304,6 +340,14 @@ export default function WarehouseModule() {
           >
             <ArrowRightLeft className="w-4 h-4 mr-2" />
             {t("warehouse.transfers")}
+          </TabsTrigger>
+          <TabsTrigger
+            value="reservations"
+            data-ocid="warehouse.reservations.tab"
+            className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-300"
+          >
+            <ClipboardList className="w-4 h-4 mr-2" />
+            {t("warehouse.reservations")}
           </TabsTrigger>
         </TabsList>
 
@@ -513,6 +557,128 @@ export default function WarehouseModule() {
               </Table>
             </div>
           )}
+        </TabsContent>
+        <TabsContent value="reservations">
+          <div
+            className="mt-3 bg-slate-800 rounded-xl border border-white/5 overflow-hidden"
+            data-ocid="warehouse.reservations.table"
+          >
+            <Table>
+              <TableHeader>
+                <TableRow className="border-white/5">
+                  <TableHead className="text-slate-400 text-xs">
+                    {t("warehouse.productionOrder")}
+                  </TableHead>
+                  <TableHead className="text-slate-400 text-xs">
+                    {t("warehouse.material")}
+                  </TableHead>
+                  <TableHead className="text-slate-400 text-xs">
+                    {t("warehouse.quantity")}
+                  </TableHead>
+                  <TableHead className="text-slate-400 text-xs">
+                    {t("warehouse.unit")}
+                  </TableHead>
+                  <TableHead className="text-slate-400 text-xs">
+                    {t("warehouse.reservedAt")}
+                  </TableHead>
+                  <TableHead className="text-slate-400 text-xs">
+                    {t("warehouse.reservationStatus")}
+                  </TableHead>
+                  <TableHead />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {reservations.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7}>
+                      <div
+                        className="text-center py-10 text-slate-500"
+                        data-ocid="warehouse.reservations.empty_state"
+                      >
+                        <ClipboardList className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                        <p className="text-sm">
+                          {t("warehouse.noReservations")}
+                        </p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  reservations.map((r, i) => (
+                    <TableRow
+                      key={r.id}
+                      className="border-white/5 hover:bg-white/2"
+                      data-ocid={`warehouse.reservation.row.${i + 1}`}
+                    >
+                      <TableCell className="text-white text-sm">
+                        {r.productionOrderName}
+                      </TableCell>
+                      <TableCell className="text-slate-300 text-sm">
+                        {r.materialName}
+                      </TableCell>
+                      <TableCell className="text-slate-300 text-sm">
+                        {r.quantity}
+                      </TableCell>
+                      <TableCell className="text-slate-300 text-sm">
+                        {r.unit}
+                      </TableCell>
+                      <TableCell className="text-slate-400 text-xs">
+                        {r.reservedAt
+                          ? new Date(r.reservedAt).toLocaleDateString()
+                          : "-"}
+                      </TableCell>
+                      <TableCell>
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full border ${r.status === "Tamamlandı" ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" : r.status === "İptal" ? "bg-red-500/20 text-red-300 border-red-500/30" : "bg-amber-500/20 text-amber-300 border-amber-500/30"}`}
+                        >
+                          {r.status}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          {r.status === "Rezerve" && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setReservations((prev) =>
+                                    prev.map((x) =>
+                                      x.id === r.id
+                                        ? { ...x, status: "Tamamlandı" }
+                                        : x,
+                                    ),
+                                  )
+                                }
+                                className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors"
+                                data-ocid={`warehouse.reservation.complete_button.${i + 1}`}
+                              >
+                                {t("warehouse.complete")}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setReservations((prev) =>
+                                    prev.map((x) =>
+                                      x.id === r.id
+                                        ? { ...x, status: "İptal" }
+                                        : x,
+                                    ),
+                                  )
+                                }
+                                className="text-xs text-red-400 hover:text-red-300 transition-colors ml-2"
+                                data-ocid={`warehouse.reservation.cancel_button.${i + 1}`}
+                              >
+                                {t("common.cancel")}
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </TabsContent>
       </Tabs>
 

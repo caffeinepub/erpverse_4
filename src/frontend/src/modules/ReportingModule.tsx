@@ -1,22 +1,26 @@
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import {
   BarChart3,
   Briefcase,
+  DollarSign,
   Factory,
   FileDown,
   FileSpreadsheet,
+  FileText,
   GitBranch,
+  Globe,
   Handshake,
   HardDrive,
   Headphones,
+  Link2,
   Package,
   PiggyBank,
   ShieldAlert,
+  ShoppingBag,
   ShoppingCart,
   TrendingUp,
   Users,
   Warehouse,
+  Wrench,
 } from "lucide-react";
 import {
   Bar,
@@ -31,7 +35,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import * as XLSX from "xlsx";
 import {
   Tabs,
   TabsContent,
@@ -94,6 +97,36 @@ export default function ReportingModule() {
     currentValue?: number;
   }>;
   const csTickets = readLS(`erpverse_cs_${cid}`) as Array<{ status?: string }>;
+  const salesQuotes = readLS(`erpverse_sales_quotes_${cid}`) as unknown[];
+  const salesOrders = readLS(`erpverse_sales_orders_${cid}`) as unknown[];
+  const salesOpps = readLS(`erpverse_sales_opps_${cid}`) as unknown[];
+  const scPerf = readLS(`erpverse_sc_perf_${cid}`) as unknown[];
+  const scShipments = readLS(`erpverse_sc_ship_${cid}`) as unknown[];
+  const scRotations = readLS(`erpverse_sc_rot_${cid}`) as unknown[];
+  const maintenanceEquipment = readLS(`erp_maintenance_eq_${cid}`) as unknown[];
+  const maintenanceFaults = readLS(
+    `erp_maintenance_faults_${cid}`,
+  ) as unknown[];
+  const payrollRuns = readLS(`erp_payroll_${cid}`) as Array<{
+    totalNet?: number;
+    entries?: unknown[];
+  }>;
+  const tradeDeclarations = readLS(`erp_trade_declarations_${cid}`) as Array<{
+    type?: string;
+    value?: number;
+  }>;
+  const tradeShipments = readLS(`erp_trade_shipments_${cid}`) as unknown[];
+  const contracts = readLS(`contracts_${cid}`) as Array<{ status?: string }>;
+  const invoices = readLS(`erp_invoices_${cid}`) as Array<{
+    status?: string;
+    amount?: number;
+  }>;
+  const _paidInvoiceAmount = invoices
+    .filter((i) => i.status === "paid")
+    .reduce((s, i) => s + (i.amount || 0), 0);
+  const _overdueInvoiceCount = invoices.filter(
+    (i) => i.status === "overdue",
+  ).length;
 
   const activeEmployees = employees.filter((e) => e.status === "active").length;
   const openOrders = purchaseOrders.filter(
@@ -217,6 +250,69 @@ export default function ReportingModule() {
       color: "text-sky-400",
       barColor: "bg-sky-500",
       fill: "#0ea5e9",
+    },
+    {
+      key: "sales",
+      labelKey: "modules.SalesManagement",
+      count: salesQuotes.length + salesOrders.length + salesOpps.length,
+      icon: <ShoppingBag className="w-5 h-5" />,
+      color: "text-green-400",
+      barColor: "bg-green-500",
+      fill: "#22c55e",
+    },
+    {
+      key: "supplychain",
+      labelKey: "modules.SupplyChain",
+      count: scPerf.length + scShipments.length + scRotations.length,
+      icon: <Link2 className="w-5 h-5" />,
+      color: "text-teal-400",
+      barColor: "bg-teal-500",
+      fill: "#14b8a6",
+    },
+    {
+      key: "maintenance",
+      labelKey: "modules.Maintenance",
+      count: maintenanceEquipment.length + maintenanceFaults.length,
+      icon: <Wrench className="w-5 h-5" />,
+      color: "text-orange-400",
+      barColor: "bg-orange-500",
+      fill: "#f97316",
+    },
+    {
+      key: "payroll",
+      labelKey: "modules.Payroll",
+      count: payrollRuns.length,
+      icon: <DollarSign className="w-5 h-5" />,
+      color: "text-emerald-400",
+      barColor: "bg-emerald-500",
+      fill: "#10b981",
+    },
+    {
+      key: "trade",
+      labelKey: "modules.Trade",
+      count: tradeDeclarations.length + tradeShipments.length,
+      icon: <Globe className="w-5 h-5" />,
+      color: "text-indigo-400",
+      barColor: "bg-indigo-500",
+      fill: "#6366f1",
+    },
+    {
+      key: "invoices",
+      labelKey: "invoice.invoices",
+      count: invoices.length,
+      icon: <FileText className="w-5 h-5" />,
+      color: "text-yellow-400",
+      barColor: "bg-yellow-500",
+      fill: "#eab308",
+    },
+    {
+      key: "contracts",
+      labelKey: "contractManagement",
+      count: contracts.length,
+      icon: <FileText className="w-5 h-5" />,
+      color: "text-teal-400",
+      barColor: "bg-teal-500",
+      fill: "#14b8a6",
     },
   ];
 
@@ -365,6 +461,13 @@ export default function ReportingModule() {
       color: "text-sky-400",
       bg: "bg-sky-500/10",
     },
+    {
+      label: t("contractManagement"),
+      value: contracts.filter((c) => c.status === "Aktif").length,
+      sub: t("contracts"),
+      color: "text-teal-400",
+      bg: "bg-teal-500/10",
+    },
   ];
 
   const tooltipStyle = {
@@ -375,182 +478,71 @@ export default function ReportingModule() {
   };
 
   const exportToPDF = () => {
-    const doc = new jsPDF();
     const dateStr = new Date().toISOString().slice(0, 10);
     const title = `${company?.name || "ERPVerse"} ERP Raporu - ${dateStr}`;
-    doc.setFontSize(16);
-    doc.setTextColor(30, 41, 59);
-    doc.text(title, 14, 20);
-
-    autoTable(doc, {
-      startY: 30,
-      head: [["Modül", "Kayıt Sayısı"]],
-      body: modules.map((s) => [t(s.labelKey), s.count]),
-      headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
-      alternateRowStyles: { fillColor: [15, 23, 42] },
-      styles: { textColor: [30, 41, 59] },
-    });
-
-    const finalY = (doc as any).lastAutoTable?.finalY || 80;
-    doc.setFontSize(13);
-    doc.text("Muhasebe Özeti", 14, finalY + 14);
-    autoTable(doc, {
-      startY: finalY + 20,
-      head: [["Tür", "Tutar"]],
-      body: [
-        [
-          "Toplam Gelir",
-          `${transactions
-            .filter((tx) => tx.type === "income")
-            .reduce((s, tx) => s + (tx.amount || 0), 0)
-            .toLocaleString("tr-TR")} ₺`,
-        ],
-        [
-          "Toplam Gider",
-          `${transactions
-            .filter((tx) => tx.type === "expense")
-            .reduce((s, tx) => s + (tx.amount || 0), 0)
-            .toLocaleString("tr-TR")} ₺`,
-        ],
-        [
-          "Bakiye",
-          `${(transactions.filter((tx) => tx.type === "income").reduce((s, tx) => s + (tx.amount || 0), 0) - transactions.filter((tx) => tx.type === "expense").reduce((s, tx) => s + (tx.amount || 0), 0)).toLocaleString("tr-TR")} ₺`,
-        ],
-      ],
-      headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
-      alternateRowStyles: { fillColor: [15, 23, 42] },
-      styles: { textColor: [30, 41, 59] },
-    });
-
-    doc.save(`erpverse-rapor-${dateStr}.pdf`);
+    const totalIncome = transactions
+      .filter((tx) => tx.type === "income")
+      .reduce((s, tx) => s + (tx.amount || 0), 0);
+    const totalExpense = transactions
+      .filter((tx) => tx.type === "expense")
+      .reduce((s, tx) => s + (tx.amount || 0), 0);
+    const rows = modules
+      .map(
+        (m) =>
+          `<tr><td style="padding:6px 12px;border:1px solid #e2e8f0">${t(m.labelKey)}</td><td style="padding:6px 12px;border:1px solid #e2e8f0;text-align:right">${m.count}</td></tr>`,
+      )
+      .join("");
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>body{font-family:sans-serif;padding:24px;color:#1e293b}h1{font-size:20px}table{border-collapse:collapse;width:100%;margin-top:12px}th{background:#1e293b;color:#fff;padding:8px 12px;text-align:left}</style></head><body><h1>${title}</h1><table><thead><tr><th>Modül</th><th>Kayıt Sayısı</th></tr></thead><tbody>${rows}</tbody></table><h2 style="margin-top:24px">Muhasebe Özeti</h2><table><thead><tr><th>Tür</th><th>Tutar</th></tr></thead><tbody><tr><td style="padding:6px 12px;border:1px solid #e2e8f0">Toplam Gelir</td><td style="padding:6px 12px;border:1px solid #e2e8f0;text-align:right">${totalIncome.toLocaleString("tr-TR")} ₺</td></tr><tr><td style="padding:6px 12px;border:1px solid #e2e8f0">Toplam Gider</td><td style="padding:6px 12px;border:1px solid #e2e8f0;text-align:right">${totalExpense.toLocaleString("tr-TR")} ₺</td></tr><tr><td style="padding:6px 12px;border:1px solid #e2e8f0">Bakiye</td><td style="padding:6px 12px;border:1px solid #e2e8f0;text-align:right">${(totalIncome - totalExpense).toLocaleString("tr-TR")} ₺</td></tr></tbody></table></body></html>`;
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `erpverse-rapor-${dateStr}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const exportToExcel = () => {
     const dateStr = new Date().toISOString().slice(0, 10);
-    const wb = XLSX.utils.book_new();
-
-    const hrData = readLS(`erpverse_hr_${cid}`) as any[];
-    const hrSheet = XLSX.utils.json_to_sheet(
-      hrData.map((e) => ({
-        id: e.id,
-        Ad: e.name,
-        Pozisyon: e.position,
-        Departman: e.department,
-        Durum: e.status,
-        Maaş: e.salary,
-      })),
-    );
-    XLSX.utils.book_append_sheet(wb, hrSheet, "HR");
-
-    const muhasebe = readLS(`erpverse_accounting_${cid}`) as any[];
-    XLSX.utils.book_append_sheet(
-      wb,
-      XLSX.utils.json_to_sheet(
-        muhasebe.map((e) => ({
-          id: e.id,
-          Tür: e.type,
-          Açıklama: e.description,
-          Tutar: e.amount,
-          Tarih: e.date,
-          Kategori: e.category,
-        })),
-      ),
-      "Muhasebe",
-    );
-
-    const crm = readLS(`erpverse_crm_${cid}`) as any[];
-    XLSX.utils.book_append_sheet(
-      wb,
-      XLSX.utils.json_to_sheet(
-        crm.map((e) => ({
-          id: e.id,
-          Ad: e.name,
-          Şirket: e.company,
-          Email: e.email,
-          Telefon: e.phone,
-          Durum: e.status,
-        })),
-      ),
-      "CRM",
-    );
-
-    const envanter = readLS(`erpverse_inventory_${cid}`) as any[];
-    XLSX.utils.book_append_sheet(
-      wb,
-      XLSX.utils.json_to_sheet(
-        envanter.map((e) => ({
-          id: e.id,
-          Ad: e.name,
-          Kategori: e.category,
-          Miktar: e.quantity,
-          Fiyat: e.price,
-          Durum: e.status,
-        })),
-      ),
-      "Envanter",
-    );
-
-    const projeler = readLS(`erpverse_projects_${cid}`) as any[];
-    XLSX.utils.book_append_sheet(
-      wb,
-      XLSX.utils.json_to_sheet(
-        projeler.map((e) => ({
-          id: e.id,
-          Ad: e.name,
-          Durum: e.status,
-          Başlangıç: e.startDate,
-          Bitiş: e.endDate,
-        })),
-      ),
-      "Projeler",
-    );
-
-    const satinAlma = readLS(`erpverse_purchasing_orders_${cid}`) as any[];
-    XLSX.utils.book_append_sheet(
-      wb,
-      XLSX.utils.json_to_sheet(
-        satinAlma.map((e) => ({
-          id: e.id,
-          Başlık: e.title,
-          Tedarikçi: e.supplier,
-          Miktar: e.quantity,
-          Durum: e.status,
-          Toplam: e.totalAmount,
-        })),
-      ),
-      "Satın Alma",
-    );
-
-    const uretim = readLS(`erpverse_production_${cid}`) as any[];
-    XLSX.utils.book_append_sheet(
-      wb,
-      XLSX.utils.json_to_sheet(
-        uretim.map((e) => ({
-          id: e.id,
-          Ürün: e.productName,
-          Miktar: e.quantity,
-          Durum: e.status,
-        })),
-      ),
-      "Üretim",
-    );
-
-    const workflow = readLS(`erpverse_workflow_${cid}`) as any[];
-    XLSX.utils.book_append_sheet(
-      wb,
-      XLSX.utils.json_to_sheet(
-        workflow.map((e) => ({
-          id: e.id,
-          Başlık: e.title,
-          Atanan: e.assignee,
-          Durum: e.status,
-          Öncelik: e.priority,
-        })),
-      ),
-      "İş Akışı",
-    );
-
-    XLSX.writeFile(wb, `erpverse-veriler-${dateStr}.xlsx`);
+    const readLSRaw = (key: string): Record<string, unknown>[] => {
+      try {
+        return JSON.parse(localStorage.getItem(key) || "[]") as Record<
+          string,
+          unknown
+        >[];
+      } catch {
+        return [];
+      }
+    };
+    const allData: Record<string, Record<string, unknown>[]> = {
+      HR: readLSRaw(`erpverse_hr_${cid}`),
+      Muhasebe: readLSRaw(`erpverse_accounting_${cid}`),
+      CRM: readLSRaw(`erpverse_crm_${cid}`),
+      Envanter: readLSRaw(`erpverse_inventory_${cid}`),
+      Projeler: readLSRaw(`erpverse_projects_${cid}`),
+    };
+    const csvParts: string[] = [];
+    for (const [sheetName, rows] of Object.entries(allData)) {
+      if (rows.length === 0) continue;
+      const headers = Object.keys(rows[0]);
+      csvParts.push(`=== ${sheetName} ===`);
+      csvParts.push(headers.join(","));
+      for (const row of rows) {
+        csvParts.push(
+          headers.map((h) => JSON.stringify(row[h] ?? "")).join(","),
+        );
+      }
+      csvParts.push("");
+    }
+    const blob = new Blob([csvParts.join("\n")], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `erpverse-veriler-${dateStr}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (

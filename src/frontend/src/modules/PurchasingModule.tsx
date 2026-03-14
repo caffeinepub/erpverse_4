@@ -1,4 +1,11 @@
-import { CheckCircle, Plus, ShoppingCart, Trash2, XCircle } from "lucide-react";
+import {
+  BarChart2,
+  CheckCircle,
+  Plus,
+  ShoppingCart,
+  Trash2,
+  XCircle,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "../components/ui/badge";
@@ -57,6 +64,11 @@ interface AutoPurchaseRequest {
   status: "pending" | "approved" | "rejected";
 }
 
+interface PriceItem {
+  id: string;
+  itemName: string;
+  supplierPrices: { supplier: string; price: number }[];
+}
 export default function PurchasingModule() {
   const { t } = useLanguage();
   const { company, membership } = useAuth();
@@ -80,6 +92,20 @@ export default function PurchasingModule() {
   const [autoRequests, setAutoRequests] = useLocalStorage<
     AutoPurchaseRequest[]
   >(`erpverse_auto_purchase_requests_${companyId}`, []);
+  const [priceItems, setPriceItems] = useLocalStorage<PriceItem[]>(
+    `erpverse_price_compare_${companyId}`,
+    [],
+  );
+  const [showPriceDialog, setShowPriceDialog] = useState(false);
+  const [priceForm, setPriceForm] = useState({
+    itemName: "",
+    supplier1: "",
+    price1: "",
+    supplier2: "",
+    price2: "",
+    supplier3: "",
+    price3: "",
+  });
   const [showDialog, setShowDialog] = useState(false);
   const [selectedSupplierForOrders, setSelectedSupplierForOrders] = useState<
     import("./SupplierModule").Supplier | null
@@ -181,6 +207,17 @@ export default function PurchasingModule() {
       date: form.date,
       status: "awaiting_approval",
     };
+    // Budget check
+    const budgetItems = JSON.parse(
+      localStorage.getItem(`erp_budget_${companyId}`) || "[]",
+    );
+    const totalBudget = budgetItems.reduce(
+      (s: number, b: any) => s + (Number(b.amount) || 0),
+      0,
+    );
+    if (totalBudget > 0 && Number(form.amount) > totalBudget) {
+      toast.warning(t("budgetWarning"));
+    }
     setOrders((prev) => [...prev, newOrder]);
     addNotification({
       type: "approval_required",
@@ -253,6 +290,7 @@ export default function PurchasingModule() {
       delivered: t("purchasing.delivered"),
       rejected: t("purchasing.rejected"),
     };
+
     return (
       <Badge variant="outline" className={`text-xs ${map[status]}`}>
         {labelMap[status]}
@@ -271,6 +309,43 @@ export default function PurchasingModule() {
         {t(`purchasing.${status}`)}
       </Badge>
     );
+  };
+
+  const addPriceItem = () => {
+    if (!priceForm.itemName) return;
+    const supplierPrices: { supplier: string; price: number }[] = [];
+    if (priceForm.supplier1 && priceForm.price1)
+      supplierPrices.push({
+        supplier: priceForm.supplier1,
+        price: Number(priceForm.price1),
+      });
+    if (priceForm.supplier2 && priceForm.price2)
+      supplierPrices.push({
+        supplier: priceForm.supplier2,
+        price: Number(priceForm.price2),
+      });
+    if (priceForm.supplier3 && priceForm.price3)
+      supplierPrices.push({
+        supplier: priceForm.supplier3,
+        price: Number(priceForm.price3),
+      });
+    if (supplierPrices.length === 0) return;
+    const item: PriceItem = {
+      id: String(Date.now()),
+      itemName: priceForm.itemName,
+      supplierPrices,
+    };
+    setPriceItems((prev) => [...prev, item]);
+    setPriceForm({
+      itemName: "",
+      supplier1: "",
+      price1: "",
+      supplier2: "",
+      price2: "",
+      supplier3: "",
+      price3: "",
+    });
+    setShowPriceDialog(false);
   };
 
   return (
@@ -313,6 +388,13 @@ export default function PurchasingModule() {
                 {pendingAutoRequests}
               </span>
             )}
+          </TabsTrigger>
+          <TabsTrigger
+            value="price_compare"
+            className="data-[state=active]:bg-red-600 data-[state=active]:text-white text-slate-400"
+            data-ocid="purchasing.tabs.price_compare"
+          >
+            {t("priceComparison")}
           </TabsTrigger>
         </TabsList>
 
@@ -594,6 +676,165 @@ export default function PurchasingModule() {
               </table>
             </div>
           )}
+        </TabsContent>
+        <TabsContent value="price_compare">
+          <div className="flex justify-end mb-4">
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={() => setShowPriceDialog(true)}
+              data-ocid="purchasing.price_compare.open_modal_button"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              {t("addPriceItem")}
+            </Button>
+          </div>
+          {priceItems.length === 0 ? (
+            <div
+              className="text-center py-16 text-slate-500"
+              data-ocid="purchasing.price_compare.empty_state"
+            >
+              <BarChart2 className="w-12 h-12 mx-auto mb-3 opacity-40" />
+              <p>{t("priceComparison")}</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {priceItems.map((item, i) => {
+                const minPrice = Math.min(
+                  ...item.supplierPrices.map((s) => s.price),
+                );
+                return (
+                  <div
+                    key={item.id}
+                    className="bg-slate-800 rounded-xl p-4 border border-white/5"
+                    data-ocid={`purchasing.price_compare.item.${i + 1}`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-white font-semibold">
+                        {item.itemName}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPriceItems((prev) =>
+                            prev.filter((x) => x.id !== item.id),
+                          )
+                        }
+                        className="text-slate-500 hover:text-red-400"
+                        data-ocid={`purchasing.price_compare.delete_button.${i + 1}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      {item.supplierPrices.map((sp, j) => (
+                        <div
+                          key={sp.supplier || j}
+                          className={`rounded-lg p-3 border ${sp.price === minPrice ? "border-emerald-500/50 bg-emerald-500/10" : "border-white/5 bg-white/5"}`}
+                        >
+                          <p className="text-slate-400 text-xs">
+                            {sp.supplier}
+                          </p>
+                          <p
+                            className={`text-lg font-bold mt-1 ${sp.price === minPrice ? "text-emerald-400" : "text-white"}`}
+                          >
+                            ₺{sp.price.toLocaleString("tr-TR")}
+                          </p>
+                          {sp.price === minPrice && (
+                            <p className="text-emerald-400 text-xs mt-1">
+                              {t("supplierPrice")}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <Dialog open={showPriceDialog} onOpenChange={setShowPriceDialog}>
+            <DialogContent
+              className="bg-slate-800 border-white/10 text-white max-w-lg"
+              data-ocid="purchasing.price_compare.dialog"
+            >
+              <DialogHeader>
+                <DialogTitle className="text-white">
+                  {t("addPriceItem")}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 mt-2">
+                <div>
+                  <Label className="text-slate-300 text-sm mb-1.5 block">
+                    {t("purchasing.supplier")} / {t("purchasing.addOrder")}
+                  </Label>
+                  <Input
+                    value={priceForm.itemName}
+                    onChange={(e) =>
+                      setPriceForm((p) => ({ ...p, itemName: e.target.value }))
+                    }
+                    className="bg-white/10 border-white/20 text-white"
+                    placeholder="..."
+                    data-ocid="purchasing.price_compare.item_name.input"
+                  />
+                </div>
+                {([1, 2, 3] as const).map((n) => (
+                  <div key={n} className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-slate-300 text-xs mb-1 block">
+                        {t("purchasing.supplier")} {n}
+                      </Label>
+                      <Input
+                        value={(priceForm as any)[`supplier${n}`]}
+                        onChange={(e) =>
+                          setPriceForm((p) => ({
+                            ...p,
+                            [`supplier${n}`]: e.target.value,
+                          }))
+                        }
+                        className="bg-white/10 border-white/20 text-white"
+                        data-ocid={`purchasing.price_compare.supplier${n}.input`}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-slate-300 text-xs mb-1 block">
+                        {t("purchasing.amount")}
+                      </Label>
+                      <Input
+                        type="number"
+                        value={(priceForm as any)[`price${n}`]}
+                        onChange={(e) =>
+                          setPriceForm((p) => ({
+                            ...p,
+                            [`price${n}`]: e.target.value,
+                          }))
+                        }
+                        className="bg-white/10 border-white/20 text-white"
+                        data-ocid={`purchasing.price_compare.price${n}.input`}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-end gap-3 mt-6">
+                <Button
+                  variant="ghost"
+                  className="text-slate-400"
+                  onClick={() => setShowPriceDialog(false)}
+                  data-ocid="purchasing.price_compare.cancel_button"
+                >
+                  {t("common.cancel")}
+                </Button>
+                <Button
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                  onClick={addPriceItem}
+                  data-ocid="purchasing.price_compare.submit_button"
+                >
+                  {t("common.save")}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
       </Tabs>
 

@@ -45,8 +45,8 @@ export const idlFactory: IDL.InterfaceFactory = ({ IDL }) => {
   return IDL.Service({
     _initializeAccessControlWithSecret: IDL.Func([IDL.Text], [], []),
     registerUser: IDL.Func([IDL.Text], [IDL.Opt(UserProfile)], []),
-    loginWithCode: IDL.Func([IDL.Text], [IDL.Opt(UserProfile)], ["query"]),
-    getUserProfile: IDL.Func([IDL.Text], [IDL.Opt(UserProfile)], ["query"]),
+    loginWithCode: IDL.Func([IDL.Text], [IDL.Opt(UserProfile)], []),
+    getUserProfile: IDL.Func([IDL.Text], [IDL.Opt(UserProfile)], []),
     registerCompany: IDL.Func(
       [IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text],
       [IDL.Opt(Company)],
@@ -56,9 +56,9 @@ export const idlFactory: IDL.InterfaceFactory = ({ IDL }) => {
     getCompanyMemberships: IDL.Func(
       [IDL.Text],
       [IDL.Vec(CompanyMembership)],
-      ["query"],
+      [],
     ),
-    getUserCompanies: IDL.Func([IDL.Text], [IDL.Vec(Company)], ["query"]),
+    getUserCompanies: IDL.Func([IDL.Text], [IDL.Vec(Company)], []),
     addPersonnelToCompany: IDL.Func(
       [IDL.Text, IDL.Text, IDL.Text, IDL.Vec(CompanyRole), IDL.Vec(IDL.Text)],
       [IDL.Bool],

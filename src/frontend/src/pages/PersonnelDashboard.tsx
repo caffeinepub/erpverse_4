@@ -2,21 +2,30 @@ import {
   AlertCircle,
   BarChart3,
   Building2,
+  CalendarDays,
+  CheckSquare,
   DollarSign,
   Factory,
+  FileText,
   FolderKanban,
+  Globe,
+  GraduationCap,
   Handshake,
   HardDrive,
   Headphones,
+  Link2,
   LogOut,
   Package,
   PiggyBank,
   ShieldAlert,
+  ShoppingBag,
   ShoppingCart,
+  Tags,
   User,
   Users,
   Warehouse as WarehouseIcon,
   Workflow,
+  Wrench,
 } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "../components/ui/badge";
@@ -32,16 +41,28 @@ import type {
 import { useLanguage } from "../contexts/LanguageContext";
 import AccountingModule from "../modules/AccountingModule";
 import AssetModule from "../modules/AssetModule";
+import BIModule from "../modules/BIModule";
 import BudgetModule from "../modules/BudgetModule";
 import CRMModule from "../modules/CRMModule";
+import CalendarModule from "../modules/CalendarModule";
+import ContractModule from "../modules/ContractModule";
 import CustomerServiceModule from "../modules/CustomerServiceModule";
+import DocumentModule from "../modules/DocumentModule";
 import HRModule from "../modules/HRModule";
 import InventoryModule from "../modules/InventoryModule";
+import MaintenanceModule from "../modules/MaintenanceModule";
+import PayrollModule from "../modules/PayrollModule";
+import ProductCatalogModule from "../modules/ProductCatalogModule";
 import ProductionModule from "../modules/ProductionModule";
 import ProjectsModule from "../modules/ProjectsModule";
 import PurchasingModule from "../modules/PurchasingModule";
 import QualityModule from "../modules/QualityModule";
 import ReportingModule from "../modules/ReportingModule";
+import SalesModule from "../modules/SalesModule";
+import SupplyChainModule from "../modules/SupplyChainModule";
+import TaskModule from "../modules/TaskModule";
+import TradeModule from "../modules/TradeModule";
+import TrainingModule from "../modules/TrainingModule";
 import WarehouseModule from "../modules/WarehouseModule";
 import WorkflowModule from "../modules/WorkflowModule";
 import UserProfilePage from "./UserProfilePage";
@@ -127,6 +148,56 @@ const MODULE_CONFIG: Record<
     icon: <Headphones className="w-7 h-7" />,
     color: "text-sky-400",
     bg: "bg-sky-500/10 border-sky-500/20",
+  },
+  SalesManagement: {
+    icon: <ShoppingBag className="w-7 h-7" />,
+    color: "text-green-400",
+    bg: "bg-green-500/10 border-green-500/20",
+  },
+  SupplyChain: {
+    icon: <Link2 className="w-7 h-7" />,
+    color: "text-teal-400",
+    bg: "bg-teal-500/10 border-teal-500/20",
+  },
+  Maintenance: {
+    icon: <Wrench className="w-7 h-7" />,
+    color: "text-orange-400",
+    bg: "bg-orange-500/10 border-orange-500/20",
+  },
+  Payroll: {
+    icon: <DollarSign className="w-7 h-7" />,
+    color: "text-emerald-400",
+    bg: "bg-emerald-500/10 border-emerald-500/20",
+  },
+  Trade: {
+    icon: <Globe className="w-7 h-7" />,
+    color: "text-indigo-400",
+    bg: "bg-indigo-500/10 border-indigo-500/20",
+  },
+  Contracts: {
+    icon: <FileText className="w-7 h-7" />,
+    color: "text-teal-400",
+    bg: "bg-teal-500/10 border-teal-500/20",
+  },
+  Tasks: {
+    icon: <CheckSquare className="w-7 h-7" />,
+    color: "text-violet-400",
+    bg: "bg-violet-500/10 border-violet-500/20",
+  },
+  Calendar: {
+    icon: <CalendarDays className="w-7 h-7" />,
+    color: "text-sky-400",
+    bg: "bg-sky-500/10 border-sky-500/20",
+  },
+  Training: {
+    icon: <GraduationCap className="w-7 h-7" />,
+    color: "text-yellow-400",
+    bg: "bg-yellow-500/10 border-yellow-500/20",
+  },
+  ProductCatalog: {
+    icon: <Tags className="w-7 h-7" />,
+    color: "text-pink-400",
+    bg: "bg-pink-500/10 border-pink-500/20",
   },
 };
 
@@ -318,6 +389,18 @@ export default function PersonnelDashboard({
           {activeModule === "Budget" && <BudgetModule />}
           {activeModule === "Assets" && <AssetModule />}
           {activeModule === "CustomerService" && <CustomerServiceModule />}
+          {activeModule === "SalesManagement" && <SalesModule />}
+          {activeModule === "SupplyChain" && <SupplyChainModule />}
+          {activeModule === "Maintenance" && <MaintenanceModule />}
+          {activeModule === "Payroll" && <PayrollModule />}
+          {activeModule === "BI" && <BIModule />}
+          {activeModule === "Documents" && <DocumentModule />}
+          {activeModule === "Trade" && <TradeModule />}
+          {activeModule === "Contracts" && <ContractModule />}
+          {activeModule === "Tasks" && <TaskModule />}
+          {activeModule === "Calendar" && <CalendarModule />}
+          {activeModule === "Training" && <TrainingModule />}
+          {activeModule === "ProductCatalog" && <ProductCatalogModule />}
           {![
             "HR",
             "Accounting",
@@ -333,6 +416,18 @@ export default function PersonnelDashboard({
             "Budget",
             "Assets",
             "CustomerService",
+            "SalesManagement",
+            "SupplyChain",
+            "Maintenance",
+            "Payroll",
+            "BI",
+            "Documents",
+            "Trade",
+            "Contracts",
+            "Tasks",
+            "Calendar",
+            "Training",
+            "ProductCatalog",
           ].includes(activeModule) && (
             <div className="flex items-center justify-center h-64">
               <p className="text-slate-400">{t("module.comingSoon")}</p>

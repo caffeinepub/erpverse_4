@@ -1,22 +1,30 @@
 import {
   BarChart3,
+  Building,
   Building2,
+  CalendarDays,
   CheckSquare,
   ClipboardList,
   DollarSign,
   Factory,
+  FileText,
   FolderKanban,
+  Globe,
+  GraduationCap,
   Handshake,
   HardDrive,
   Headphones,
   LayoutDashboard,
+  Link2,
   LogOut,
   Package,
   PiggyBank,
   Settings,
   ShieldAlert,
   ShieldCheck,
+  ShoppingBag,
   ShoppingCart,
+  Tags,
   Trash2,
   User,
   UserPlus,
@@ -24,6 +32,7 @@ import {
   Users2,
   Warehouse as WarehouseIcon,
   Workflow,
+  Wrench,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import AuditLogPanel from "../components/AuditLogPanel";
@@ -49,16 +58,30 @@ import { useLanguage } from "../contexts/LanguageContext";
 import { useActor } from "../hooks/useActor";
 import AccountingModule from "../modules/AccountingModule";
 import AssetModule from "../modules/AssetModule";
+import BIModule from "../modules/BIModule";
 import BudgetModule from "../modules/BudgetModule";
 import CRMModule from "../modules/CRMModule";
+import CalendarModule from "../modules/CalendarModule";
+import CompanyProfileModule from "../modules/CompanyProfileModule";
+import ContractModule from "../modules/ContractModule";
 import CustomerServiceModule from "../modules/CustomerServiceModule";
+import DocumentModule from "../modules/DocumentModule";
 import HRModule from "../modules/HRModule";
 import InventoryModule from "../modules/InventoryModule";
+import MaintenanceModule from "../modules/MaintenanceModule";
+import PayrollModule from "../modules/PayrollModule";
+import ProductCatalogModule from "../modules/ProductCatalogModule";
 import ProductionModule from "../modules/ProductionModule";
 import ProjectsModule from "../modules/ProjectsModule";
 import PurchasingModule from "../modules/PurchasingModule";
 import QualityModule from "../modules/QualityModule";
 import ReportingModule from "../modules/ReportingModule";
+import RiskModule from "../modules/RiskModule";
+import SalesModule from "../modules/SalesModule";
+import SupplyChainModule from "../modules/SupplyChainModule";
+import TaskModule from "../modules/TaskModule";
+import TradeModule from "../modules/TradeModule";
+import TrainingModule from "../modules/TrainingModule";
 import WarehouseModule from "../modules/WarehouseModule";
 import WorkflowModule from "../modules/WorkflowModule";
 import UserProfilePage from "./UserProfilePage";
@@ -84,7 +107,21 @@ type Tab =
   | "warehouse"
   | "budget"
   | "assets"
-  | "customerservice";
+  | "customerservice"
+  | "sales"
+  | "supplychain"
+  | "maintenance"
+  | "payroll"
+  | "bi"
+  | "documents"
+  | "risk"
+  | "trade"
+  | "contracts"
+  | "tasks"
+  | "calendar"
+  | "companyprofile"
+  | "training"
+  | "productcatalog";
 
 const ALL_MODULES = [
   "HR",
@@ -101,6 +138,20 @@ const ALL_MODULES = [
   "Budget",
   "Assets",
   "CustomerService",
+  "SalesManagement",
+  "SupplyChain",
+  "Maintenance",
+  "Payroll",
+  "BI",
+  "Documents",
+  "Risk",
+  "Trade",
+  "Contracts",
+  "Tasks",
+  "Calendar",
+  "CompanyProfile",
+  "Training",
+  "ProductCatalog",
 ];
 
 const ROLES = [
@@ -392,6 +443,66 @@ export default function OwnerDashboard({
       id: "customerservice" as Tab,
       labelKey: "modules.CustomerService",
       icon: <Headphones className="w-5 h-5 text-sky-400" />,
+    },
+    {
+      id: "sales" as Tab,
+      labelKey: "modules.SalesManagement",
+      icon: <ShoppingBag className="w-5 h-5 text-green-400" />,
+    },
+    {
+      id: "supplychain" as Tab,
+      labelKey: "modules.SupplyChain",
+      icon: <Link2 className="w-5 h-5 text-teal-400" />,
+    },
+    {
+      id: "maintenance" as Tab,
+      labelKey: "modules.Maintenance",
+      icon: <Wrench className="w-5 h-5 text-orange-400" />,
+    },
+    {
+      id: "payroll" as Tab,
+      labelKey: "modules.Payroll",
+      icon: <DollarSign className="w-5 h-5 text-emerald-600" />,
+    },
+    {
+      id: "risk" as Tab,
+      labelKey: "modules.Risk",
+      icon: <ShieldAlert className="w-5 h-5 text-red-400" />,
+    },
+    {
+      id: "trade" as Tab,
+      labelKey: "modules.Trade",
+      icon: <Globe className="w-5 h-5 text-indigo-400" />,
+    },
+    {
+      id: "contracts" as Tab,
+      labelKey: "contractManagement",
+      icon: <FileText className="w-5 h-5 text-teal-400" />,
+    },
+    {
+      id: "tasks" as Tab,
+      labelKey: "modules.Tasks",
+      icon: <CheckSquare className="w-5 h-5 text-violet-400" />,
+    },
+    {
+      id: "calendar" as Tab,
+      labelKey: "modules.Calendar",
+      icon: <CalendarDays className="w-5 h-5 text-sky-400" />,
+    },
+    {
+      id: "companyprofile" as Tab,
+      labelKey: "companyProfile.title",
+      icon: <Building className="w-5 h-5 text-blue-400" />,
+    },
+    {
+      id: "training" as Tab,
+      labelKey: "modules.Training",
+      icon: <GraduationCap className="w-5 h-5 text-yellow-400" />,
+    },
+    {
+      id: "productcatalog" as Tab,
+      labelKey: "modules.ProductCatalog",
+      icon: <Tags className="w-5 h-5 text-pink-400" />,
     },
   ];
 
@@ -852,6 +963,20 @@ export default function OwnerDashboard({
         {tab === "budget" && <BudgetModule />}
         {tab === "assets" && <AssetModule />}
         {tab === "customerservice" && <CustomerServiceModule />}
+        {tab === "sales" && <SalesModule />}
+        {tab === "supplychain" && <SupplyChainModule />}
+        {tab === "maintenance" && <MaintenanceModule />}
+        {tab === "payroll" && <PayrollModule />}
+        {tab === "bi" && <BIModule />}
+        {tab === "documents" && <DocumentModule />}
+        {tab === "risk" && <RiskModule />}
+        {tab === "trade" && <TradeModule />}
+        {tab === "contracts" && <ContractModule />}
+        {tab === "tasks" && <TaskModule />}
+        {tab === "calendar" && <CalendarModule />}
+        {tab === "companyprofile" && <CompanyProfileModule />}
+        {tab === "training" && <TrainingModule />}
+        {tab === "productcatalog" && <ProductCatalogModule />}
         {tab === "profile" && (
           <UserProfilePage
             user={user}
