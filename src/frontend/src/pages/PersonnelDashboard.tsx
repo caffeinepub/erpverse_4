@@ -31,6 +31,7 @@ import { useState } from "react";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 
+import GlobalSearch from "../components/GlobalSearch";
 import NotificationBell from "../components/NotificationBell";
 import { useAuth } from "../contexts/AuthContext";
 import type {
@@ -286,6 +287,10 @@ export default function PersonnelDashboard({
             </Badge>
           </div>
           <NotificationBell />
+          <GlobalSearch
+            companyId={company?.id ?? ""}
+            onNavigate={(tab) => setActiveModule(tab)}
+          />
           <button
             type="button"
             onClick={() => setShowProfile(true)}

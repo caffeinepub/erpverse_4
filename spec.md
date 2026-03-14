@@ -1,26 +1,25 @@
 # ERPVerse
 
 ## Current State
-SalesModule has quotes, orders, and opportunities tabs. Quotes can have status: draft/sent/accepted/rejected. InvoiceTab (inside AccountingModule) stores invoices in `erp_invoices_{cid}` localStorage key. Invoice interface has: id, customerName, description, amount, dueDate, status, createdAt.
+ERPVerse ERP - 30+ modules, sidebar nav with NotificationBell. All module data in localStorage. No cross-module search.
 
 ## Requested Changes (Diff)
 
 ### Add
-- "Faturaya Dönüştür" (Convert to Invoice) button on accepted quotes in SalesModule
-- When clicked, creates a new invoice entry in `erp_invoices_{cid}` localStorage with status "draft", customer from quote, amount from quote, and description referencing the quote number
-- Shows a notification confirming the conversion
-- Marks the quote with a `convertedToInvoice: true` flag so the button is disabled/hidden after conversion
-- Translation keys for the new button and notification in all 8 languages
+- GlobalSearch component: search icon in sidebar near NotificationBell, opens modal overlay
+- Modal text input with live results from all major localStorage modules grouped by module type
+- Modules: HR personnel, CRM customers, Projects, Inventory, Tasks, Contracts, Invoices, Product catalog, Training, Suppliers
+- Results show module badge + item name; clicking navigates to that module tab
+- Added to both OwnerDashboard and PersonnelDashboard
 
 ### Modify
-- SalesQuote interface: add optional `convertedToInvoice?: boolean` field
-- Quotes table row: show "Faturaya Dönüştür" button only for accepted quotes that haven't been converted yet
+- OwnerDashboard: add GlobalSearch next to NotificationBell
+- PersonnelDashboard: same
 
 ### Remove
-- Nothing removed
+- Nothing
 
 ## Implementation Plan
-1. Update SalesQuote interface to add `convertedToInvoice?: boolean`
-2. Add `convertToInvoice` handler function in SalesModule that creates invoice in localStorage and marks quote as converted
-3. Add button in quotes table row, visible only for accepted quotes not yet converted
-4. Add translation keys for new strings
+1. Create GlobalSearch.tsx component
+2. Integrate into OwnerDashboard
+3. Integrate into PersonnelDashboard

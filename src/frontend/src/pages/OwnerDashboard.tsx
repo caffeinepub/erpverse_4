@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import AuditLogPanel from "../components/AuditLogPanel";
+import GlobalSearch from "../components/GlobalSearch";
 import NotificationBell from "../components/NotificationBell";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -544,6 +545,10 @@ export default function OwnerDashboard({
                 {user.displayName}
               </p>
               <NotificationBell />
+              <GlobalSearch
+                companyId={company.id}
+                onNavigate={(tab) => setTab(tab as Tab)}
+              />
             </div>
             <Badge
               variant="secondary"
