@@ -1,4 +1,10 @@
-import { PiggyBank, Plus, TrendingDown, TrendingUp } from "lucide-react";
+import {
+  BarChart2,
+  PiggyBank,
+  Plus,
+  TrendingDown,
+  TrendingUp,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "../components/ui/badge";
@@ -46,6 +52,15 @@ interface BudgetItem {
   actualAmount: number;
 }
 
+interface AccountingTransaction {
+  id: string;
+  type: "income" | "expense";
+  description: string;
+  amount: number;
+  date: string;
+  category?: string;
+}
+
 export default function BudgetModule() {
   const { t } = useLanguage();
   const { company } = useAuth();
@@ -55,6 +70,13 @@ export default function BudgetModule() {
     `erp_budget_${cid}`,
     [],
   );
+
+  // Read accounting transactions for comparison
+  const [accountingTx] = useLocalStorage<AccountingTransaction[]>(
+    `erpverse_accounting_${cid}`,
+    [],
+  );
+
   const [showDialog, setShowDialog] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({
@@ -80,6 +102,30 @@ export default function BudgetModule() {
   const actualIncome = incomeItems.reduce((s, i) => s + i.actualAmount, 0);
   const actualExpense = expenseItems.reduce((s, i) => s + i.actualAmount, 0);
   const netDiff = actualIncome - actualExpense;
+
+  // Accounting comparison calculations
+  const accIncome = accountingTx
+    .filter((t) => t.type === "income")
+    .reduce((s, t) => s + t.amount, 0);
+  const accExpense = accountingTx
+    .filter((t) => t.type === "expense")
+    .reduce((s, t) => s + t.amount, 0);
+
+  const incomeVariance = accIncome - plannedIncome;
+  const expenseVariance = accExpense - plannedExpense;
+  const netPlanned = plannedIncome - plannedExpense;
+  const netActual = accIncome - accExpense;
+  const netVariance = netActual - netPlanned;
+
+  // Category-level comparison from accounting
+  const accByCategory = accountingTx.reduce<
+    Record<string, { income: number; expense: number }>
+  >((acc, tx) => {
+    const cat = tx.category || tx.description.split(" ")[0] || "Diğer";
+    if (!acc[cat]) acc[cat] = { income: 0, expense: 0 };
+    acc[cat][tx.type] += tx.amount;
+    return acc;
+  }, {});
 
   const openAdd = () => {
     setEditId(null);
@@ -144,6 +190,11 @@ export default function BudgetModule() {
     return acc;
   }, {});
 
+  const _varianceColor = (v: number, type?: string) => {
+    if (type === "expense") return v <= 0 ? "text-green-400" : "text-red-400";
+    return v >= 0 ? "text-green-400" : "text-red-400";
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center gap-3 mb-6">
@@ -166,6 +217,14 @@ export default function BudgetModule() {
             className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-300"
           >
             {t("budget.summary")}
+          </TabsTrigger>
+          <TabsTrigger
+            value="comparison"
+            data-ocid="budget.comparison.tab"
+            className="data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-300"
+          >
+            <BarChart2 className="w-4 h-4 mr-1" />
+            {t("budget.comparison")}
           </TabsTrigger>
         </TabsList>
 
@@ -395,6 +454,259 @@ export default function BudgetModule() {
                         >
                           {variance >= 0 ? "+" : ""}
                           {fmt(variance)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Muhasebe Karşılaştırması Tab */}
+        <TabsContent value="comparison" data-ocid="budget.comparison.panel">
+          <p className="text-slate-500 text-sm mb-4">
+            {t("budget.comparisonNote")}
+          </p>
+
+          {/* KPI cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            {[
+              {
+                label: t("budget.plannedIncome"),
+                value: fmt(plannedIncome),
+                color: "text-slate-300",
+                bg: "bg-slate-800/60 border-white/10",
+              },
+              {
+                label: `${t("budget.accountingActual")} (${t("budget.income")})`,
+                value: fmt(accIncome),
+                color:
+                  accIncome >= plannedIncome
+                    ? "text-green-400"
+                    : "text-yellow-400",
+                bg: "bg-slate-800/60 border-white/10",
+              },
+              {
+                label: `${t("budget.variance")} (${t("budget.income")})`,
+                value: (incomeVariance >= 0 ? "+" : "") + fmt(incomeVariance),
+                color: incomeVariance >= 0 ? "text-green-400" : "text-red-400",
+                bg:
+                  incomeVariance >= 0
+                    ? "bg-green-500/10 border-green-500/20"
+                    : "bg-red-500/10 border-red-500/20",
+              },
+              {
+                label: t("budget.plannedExpense"),
+                value: fmt(plannedExpense),
+                color: "text-slate-300",
+                bg: "bg-slate-800/60 border-white/10",
+              },
+              {
+                label: `${t("budget.accountingActual")} (${t("budget.expense")})`,
+                value: fmt(accExpense),
+                color:
+                  accExpense <= plannedExpense
+                    ? "text-green-400"
+                    : "text-red-400",
+                bg: "bg-slate-800/60 border-white/10",
+              },
+              {
+                label: `${t("budget.variance")} (${t("budget.expense")})`,
+                value: (expenseVariance >= 0 ? "+" : "") + fmt(expenseVariance),
+                color: expenseVariance <= 0 ? "text-green-400" : "text-red-400",
+                bg:
+                  expenseVariance <= 0
+                    ? "bg-green-500/10 border-green-500/20"
+                    : "bg-red-500/10 border-red-500/20",
+              },
+            ].map((stat) => (
+              <div
+                key={stat.label}
+                className={`${stat.bg} border rounded-xl p-4`}
+              >
+                <p className="text-slate-400 text-sm">{stat.label}</p>
+                <p className={`${stat.color} text-xl font-bold mt-1`}>
+                  {stat.value}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* Net comparison bar */}
+          <div className="bg-slate-800/60 border border-white/10 rounded-xl p-5 mb-6">
+            <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+              <BarChart2 className="w-5 h-5 text-blue-400" />
+              {t("budget.vsAccounting")}
+            </h3>
+            <div className="space-y-4">
+              {[
+                {
+                  label: t("budget.income"),
+                  planned: plannedIncome,
+                  actual: accIncome,
+                  type: "income",
+                },
+                {
+                  label: t("budget.expense"),
+                  planned: plannedExpense,
+                  actual: accExpense,
+                  type: "expense",
+                },
+              ].map((row) => {
+                const max = Math.max(row.planned, row.actual, 1);
+                const plannedPct = (row.planned / max) * 100;
+                const actualPct = (row.actual / max) * 100;
+                const isGood =
+                  row.type === "income"
+                    ? row.actual >= row.planned
+                    : row.actual <= row.planned;
+                return (
+                  <div key={row.label}>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-slate-300 font-medium">
+                        {row.label}
+                      </span>
+                      <span
+                        className={isGood ? "text-green-400" : "text-red-400"}
+                      >
+                        {fmt(row.actual)} / {fmt(row.planned)}
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-500 text-xs w-20">
+                          {t("budget.planned")}
+                        </span>
+                        <div className="flex-1 bg-slate-700 rounded-full h-2">
+                          <div
+                            className="bg-slate-400 h-2 rounded-full transition-all"
+                            style={{ width: `${plannedPct}%` }}
+                          />
+                        </div>
+                        <span className="text-slate-400 text-xs w-24 text-right">
+                          {fmt(row.planned)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-500 text-xs w-20">
+                          {t("budget.accountingActual")}
+                        </span>
+                        <div className="flex-1 bg-slate-700 rounded-full h-2">
+                          <div
+                            className={`h-2 rounded-full transition-all ${
+                              isGood ? "bg-green-500" : "bg-red-500"
+                            }`}
+                            style={{ width: `${actualPct}%` }}
+                          />
+                        </div>
+                        <span
+                          className={`text-xs w-24 text-right ${isGood ? "text-green-400" : "text-red-400"}`}
+                        >
+                          {fmt(row.actual)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Net result */}
+          <div
+            className={`border rounded-xl p-5 ${
+              netVariance >= 0
+                ? "bg-green-500/10 border-green-500/20"
+                : "bg-red-500/10 border-red-500/20"
+            }`}
+          >
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-slate-400 text-sm">
+                  {t("budget.netDiff")} ({t("budget.planned")})
+                </p>
+                <p className="text-white text-lg font-bold">
+                  {fmt(netPlanned)}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-slate-400 text-sm">{t("budget.variance")}</p>
+                <p
+                  className={`text-2xl font-bold ${
+                    netVariance >= 0 ? "text-green-400" : "text-red-400"
+                  }`}
+                >
+                  {netVariance >= 0 ? "+" : ""}
+                  {fmt(netVariance)}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-slate-400 text-sm">
+                  {t("budget.netDiff")} ({t("budget.accountingActual")})
+                </p>
+                <p
+                  className={`text-lg font-bold ${
+                    netActual >= 0 ? "text-green-400" : "text-red-400"
+                  }`}
+                >
+                  {fmt(netActual)}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Accounting breakdown by category */}
+          {Object.keys(accByCategory).length > 0 && (
+            <div className="mt-6 rounded-xl border border-white/10 overflow-hidden">
+              <div className="px-4 py-3 bg-slate-800/60 border-b border-white/10">
+                <p className="text-white font-medium text-sm">
+                  {t("budget.accountingActual")} — {t("budget.category")}
+                </p>
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-white/10 hover:bg-transparent">
+                    <TableHead className="text-slate-400">
+                      {t("budget.category")}
+                    </TableHead>
+                    <TableHead className="text-slate-400">
+                      {t("budget.income")}
+                    </TableHead>
+                    <TableHead className="text-slate-400">
+                      {t("budget.expense")}
+                    </TableHead>
+                    <TableHead className="text-slate-400">
+                      {t("budget.netDiff")}
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Object.entries(accByCategory).map(([cat, vals], idx) => {
+                    const net = vals.income - vals.expense;
+                    return (
+                      <TableRow
+                        key={cat}
+                        className="border-white/5 hover:bg-white/5"
+                        data-ocid={`budget.comparison.row.${idx + 1}`}
+                      >
+                        <TableCell className="text-white font-medium">
+                          {cat}
+                        </TableCell>
+                        <TableCell className="text-green-400">
+                          {fmt(vals.income)}
+                        </TableCell>
+                        <TableCell className="text-red-400">
+                          {fmt(vals.expense)}
+                        </TableCell>
+                        <TableCell
+                          className={
+                            net >= 0 ? "text-green-400" : "text-red-400"
+                          }
+                        >
+                          {net >= 0 ? "+" : ""}
+                          {fmt(net)}
                         </TableCell>
                       </TableRow>
                     );

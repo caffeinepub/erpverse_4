@@ -70,6 +70,9 @@ import HRModule from "../modules/HRModule";
 import InventoryModule from "../modules/InventoryModule";
 import MaintenanceModule from "../modules/MaintenanceModule";
 import PayrollModule from "../modules/PayrollModule";
+import PersonalizedDashboardWidget, {
+  trackModuleAccess,
+} from "../modules/PersonalizedDashboardWidget";
 import ProductCatalogModule from "../modules/ProductCatalogModule";
 import ProductionModule from "../modules/ProductionModule";
 import ProjectsModule from "../modules/ProjectsModule";
@@ -588,11 +591,12 @@ export default function OwnerDashboard({
       <main className="flex-1 overflow-auto">
         {tab === "overview" && (
           <div className="p-8">
-            <h2 className="text-2xl font-bold text-white mb-1">
-              {t("dashboard.overview")}
-            </h2>
-            <p className="text-slate-400 mb-8">{company.name}</p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+            <PersonalizedDashboardWidget
+              companyId={company.id}
+              userName={user.displayName}
+              onNavigate={(mod) => setTab(mod as Tab)}
+            />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
               <div className="bg-slate-800 rounded-xl p-5 border border-white/5">
                 <p className="text-slate-400 text-sm mb-1">
                   {t("dashboard.employees")}
@@ -603,12 +607,6 @@ export default function OwnerDashboard({
               </div>
               <div className="bg-slate-800 rounded-xl p-5 border border-white/5">
                 <p className="text-slate-400 text-sm mb-1">
-                  {t("dashboard.activeModules")}
-                </p>
-                <p className="text-3xl font-bold text-white">9</p>
-              </div>
-              <div className="bg-slate-800 rounded-xl p-5 border border-white/5">
-                <p className="text-slate-400 text-sm mb-1">
                   {t("dashboard.company")}
                 </p>
                 <p className="text-lg font-bold text-white truncate">
@@ -616,23 +614,13 @@ export default function OwnerDashboard({
                 </p>
                 <p className="text-sm text-slate-400">{company.sector}</p>
               </div>
-            </div>
-            <div className="bg-slate-800 rounded-xl p-5 border border-white/5">
-              <h3 className="text-white font-semibold mb-3">
-                {t("settings.title")}
-              </h3>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                {[
-                  [t("company.email"), company.contactEmail],
-                  [t("company.phone"), company.phone],
-                  [t("company.address"), company.address],
-                  [t("company.foundedYear"), company.foundedYear],
-                ].map(([k, v]) => (
-                  <div key={k}>
-                    <p className="text-slate-400">{k}</p>
-                    <p className="text-white">{v || "-"}</p>
-                  </div>
-                ))}
+              <div className="bg-slate-800 rounded-xl p-5 border border-white/5">
+                <p className="text-slate-400 text-sm mb-1">
+                  {t("dashboard.activeModules")}
+                </p>
+                <p className="text-3xl font-bold text-white">
+                  {ALL_MODULES.length}
+                </p>
               </div>
             </div>
           </div>
