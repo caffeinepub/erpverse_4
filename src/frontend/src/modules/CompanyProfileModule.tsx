@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Building,
+  DollarSign,
   FileText,
   Globe,
   Image,
@@ -27,6 +28,12 @@ interface CompanyProfile {
   website: string;
 }
 
+interface ExchangeRates {
+  USD: number;
+  EUR: number;
+  GBP: number;
+}
+
 const defaultProfile: CompanyProfile = {
   logoUrl: "",
   name: "",
@@ -39,6 +46,8 @@ const defaultProfile: CompanyProfile = {
   website: "",
 };
 
+const defaultRates: ExchangeRates = { USD: 32, EUR: 35, GBP: 40 };
+
 export default function CompanyProfileModule() {
   const { t } = useLanguage();
   const session = JSON.parse(localStorage.getItem("erpverse_session") || "{}");
@@ -46,12 +55,17 @@ export default function CompanyProfileModule() {
   const storageKey = `erpverse_company_profile_${companyId}`;
 
   const [profile, setProfile] = useState<CompanyProfile>(defaultProfile);
+  const [rates, setRates] = useState<ExchangeRates>(defaultRates);
 
   useEffect(() => {
     if (!companyId) return;
     try {
       const saved = localStorage.getItem(storageKey);
       if (saved) setProfile(JSON.parse(saved));
+    } catch {}
+    try {
+      const savedRates = localStorage.getItem("erp_exchange_rates");
+      if (savedRates) setRates(JSON.parse(savedRates));
     } catch {}
   }, [companyId, storageKey]);
 
@@ -63,6 +77,11 @@ export default function CompanyProfileModule() {
     if (!companyId) return;
     localStorage.setItem(storageKey, JSON.stringify(profile));
     toast.success(t("companyProfile.saved"));
+  };
+
+  const handleSaveRates = () => {
+    localStorage.setItem("erp_exchange_rates", JSON.stringify(rates));
+    toast.success(t("saveRates"));
   };
 
   return (
@@ -210,6 +229,75 @@ export default function CompanyProfileModule() {
             >
               {t("companyProfile.save")}
             </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Exchange Rates */}
+      <Card className="bg-slate-800 border-white/10">
+        <CardHeader>
+          <CardTitle className="text-white text-base flex items-center gap-2">
+            <DollarSign className="w-4 h-4 text-amber-400" />
+            {t("exchangeRates")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label className="text-slate-300 text-sm mb-1.5 block">
+                {t("usdRate")}
+              </Label>
+              <Input
+                data-ocid="exchange_rates.usd_input"
+                type="number"
+                value={rates.USD}
+                onChange={(e) =>
+                  setRates((p) => ({ ...p, USD: Number(e.target.value) }))
+                }
+                className="bg-slate-700 border-white/20 text-white"
+              />
+            </div>
+            <div>
+              <Label className="text-slate-300 text-sm mb-1.5 block">
+                {t("eurRate")}
+              </Label>
+              <Input
+                data-ocid="exchange_rates.eur_input"
+                type="number"
+                value={rates.EUR}
+                onChange={(e) =>
+                  setRates((p) => ({ ...p, EUR: Number(e.target.value) }))
+                }
+                className="bg-slate-700 border-white/20 text-white"
+              />
+            </div>
+            <div>
+              <Label className="text-slate-300 text-sm mb-1.5 block">
+                {t("gbpRate")}
+              </Label>
+              <Input
+                data-ocid="exchange_rates.gbp_input"
+                type="number"
+                value={rates.GBP}
+                onChange={(e) =>
+                  setRates((p) => ({ ...p, GBP: Number(e.target.value) }))
+                }
+                className="bg-slate-700 border-white/20 text-white"
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-3 pt-1">
+            <Button
+              data-ocid="exchange_rates.save_button"
+              onClick={handleSaveRates}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              {t("saveRates")}
+            </Button>
+            <p className="text-slate-500 text-xs">
+              1 USD = {rates.USD} ₺ &nbsp;|&nbsp; 1 EUR = {rates.EUR} ₺
+              &nbsp;|&nbsp; 1 GBP = {rates.GBP} ₺
+            </p>
           </div>
         </CardContent>
       </Card>

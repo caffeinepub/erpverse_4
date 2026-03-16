@@ -1,9 +1,11 @@
 import {
   AlertCircle,
   BarChart3,
+  Barcode,
   Building2,
   CalendarDays,
   CheckSquare,
+  Clock,
   DollarSign,
   Factory,
   FileText,
@@ -22,6 +24,7 @@ import {
   ShoppingCart,
   Tags,
   User,
+  UserCheck,
   Users,
   Warehouse as WarehouseIcon,
   Workflow,
@@ -43,6 +46,7 @@ import { useLanguage } from "../contexts/LanguageContext";
 import AccountingModule from "../modules/AccountingModule";
 import AssetModule from "../modules/AssetModule";
 import BIModule from "../modules/BIModule";
+import BarcodeModule from "../modules/BarcodeModule";
 import BudgetModule from "../modules/BudgetModule";
 import CRMModule from "../modules/CRMModule";
 import CalendarModule from "../modules/CalendarModule";
@@ -53,6 +57,7 @@ import HRModule from "../modules/HRModule";
 import InventoryModule from "../modules/InventoryModule";
 import MaintenanceModule from "../modules/MaintenanceModule";
 import PayrollModule from "../modules/PayrollModule";
+import PersonnelSelfServiceModule from "../modules/PersonnelSelfServiceModule";
 import ProductCatalogModule from "../modules/ProductCatalogModule";
 import ProductionModule from "../modules/ProductionModule";
 import ProjectsModule from "../modules/ProjectsModule";
@@ -60,6 +65,7 @@ import PurchasingModule from "../modules/PurchasingModule";
 import QualityModule from "../modules/QualityModule";
 import ReportingModule from "../modules/ReportingModule";
 import SalesModule from "../modules/SalesModule";
+import ShiftModule from "../modules/ShiftModule";
 import SupplyChainModule from "../modules/SupplyChainModule";
 import TaskModule from "../modules/TaskModule";
 import TradeModule from "../modules/TradeModule";
@@ -200,6 +206,21 @@ const MODULE_CONFIG: Record<
     color: "text-pink-400",
     bg: "bg-pink-500/10 border-pink-500/20",
   },
+  Shifts: {
+    icon: <Clock className="w-7 h-7" />,
+    color: "text-cyan-400",
+    bg: "bg-cyan-500/10 border-cyan-500/20",
+  },
+  Barcode: {
+    icon: <Barcode className="w-7 h-7" />,
+    color: "text-orange-400",
+    bg: "bg-orange-500/10 border-orange-500/20",
+  },
+  SelfService: {
+    icon: <UserCheck className="w-7 h-7" />,
+    color: "text-violet-400",
+    bg: "bg-violet-500/10 border-violet-500/20",
+  },
 };
 
 export default function PersonnelDashboard({
@@ -331,6 +352,22 @@ export default function PersonnelDashboard({
           {grantedModules.length} {t("dashboard.activeModules").toLowerCase()}
         </p>
 
+        {/* Always-visible Self Service card */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
+          <button
+            type="button"
+            onClick={() => setActiveModule("SelfService")}
+            className="bg-violet-500/10 border border-violet-500/20 rounded-xl p-5 text-left hover:scale-[1.02] transition-all"
+            data-ocid="self-service.open_modal_button"
+          >
+            <div className="text-violet-400 mb-3">
+              <UserCheck className="w-7 h-7" />
+            </div>
+            <p className="text-white font-semibold text-sm">
+              {t("selfService.title")}
+            </p>
+          </button>
+        </div>
         {grantedModules.length === 0 ? (
           <div className="text-center py-16" data-ocid="modules.empty_state">
             <Package className="w-12 h-12 text-slate-600 mx-auto mb-3" />
@@ -406,6 +443,14 @@ export default function PersonnelDashboard({
           {activeModule === "Calendar" && <CalendarModule />}
           {activeModule === "Training" && <TrainingModule />}
           {activeModule === "ProductCatalog" && <ProductCatalogModule />}
+          {activeModule === "Shifts" && <ShiftModule />}
+          {activeModule === "Barcode" && <BarcodeModule />}
+          {activeModule === "SelfService" && (
+            <PersonnelSelfServiceModule
+              user={user}
+              companyId={company?.id ?? ""}
+            />
+          )}
           {![
             "HR",
             "Accounting",
@@ -433,6 +478,9 @@ export default function PersonnelDashboard({
             "Calendar",
             "Training",
             "ProductCatalog",
+            "Shifts",
+            "Barcode",
+            "SelfService",
           ].includes(activeModule) && (
             <div className="flex items-center justify-center h-64">
               <p className="text-slate-400">{t("module.comingSoon")}</p>

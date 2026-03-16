@@ -1,10 +1,12 @@
 import {
   BarChart3,
+  Barcode,
   Building,
   Building2,
   CalendarDays,
   CheckSquare,
   ClipboardList,
+  Clock,
   DollarSign,
   Factory,
   FileText,
@@ -13,11 +15,13 @@ import {
   GraduationCap,
   Handshake,
   HardDrive,
+  Hash,
   Headphones,
   LayoutDashboard,
   Link2,
   LogOut,
   Package,
+  Percent,
   PiggyBank,
   Settings,
   ShieldAlert,
@@ -33,6 +37,7 @@ import {
   Warehouse as WarehouseIcon,
   Workflow,
   Wrench,
+  Zap,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import AuditLogPanel from "../components/AuditLogPanel";
@@ -59,7 +64,9 @@ import { useLanguage } from "../contexts/LanguageContext";
 import { useActor } from "../hooks/useActor";
 import AccountingModule from "../modules/AccountingModule";
 import AssetModule from "../modules/AssetModule";
+import AutomationModule from "../modules/AutomationModule";
 import BIModule from "../modules/BIModule";
+import BarcodeModule from "../modules/BarcodeModule";
 import BudgetModule from "../modules/BudgetModule";
 import CRMModule from "../modules/CRMModule";
 import CalendarModule from "../modules/CalendarModule";
@@ -74,6 +81,7 @@ import PayrollModule from "../modules/PayrollModule";
 import PersonalizedDashboardWidget, {
   trackModuleAccess,
 } from "../modules/PersonalizedDashboardWidget";
+import PriceListModule from "../modules/PriceListModule";
 import ProductCatalogModule from "../modules/ProductCatalogModule";
 import ProductionModule from "../modules/ProductionModule";
 import ProjectsModule from "../modules/ProjectsModule";
@@ -82,11 +90,14 @@ import QualityModule from "../modules/QualityModule";
 import ReportingModule from "../modules/ReportingModule";
 import RiskModule from "../modules/RiskModule";
 import SalesModule from "../modules/SalesModule";
+import SerialLotModule from "../modules/SerialLotModule";
+import ShiftModule from "../modules/ShiftModule";
 import SupplyChainModule from "../modules/SupplyChainModule";
 import TaskModule from "../modules/TaskModule";
 import TradeModule from "../modules/TradeModule";
 import TrainingModule from "../modules/TrainingModule";
 import WarehouseModule from "../modules/WarehouseModule";
+import WorkOrderModule from "../modules/WorkOrderModule";
 import WorkflowModule from "../modules/WorkflowModule";
 import UserProfilePage from "./UserProfilePage";
 
@@ -125,7 +136,13 @@ type Tab =
   | "calendar"
   | "companyprofile"
   | "training"
-  | "productcatalog";
+  | "productcatalog"
+  | "automation"
+  | "pricelists"
+  | "workorders"
+  | "shifts"
+  | "barcode"
+  | "seriallot";
 
 const ALL_MODULES = [
   "HR",
@@ -156,6 +173,9 @@ const ALL_MODULES = [
   "CompanyProfile",
   "Training",
   "ProductCatalog",
+  "Automation",
+  "PriceLists",
+  "Shifts",
 ];
 
 const ROLES = [
@@ -507,6 +527,36 @@ export default function OwnerDashboard({
       id: "productcatalog" as Tab,
       labelKey: "modules.ProductCatalog",
       icon: <Tags className="w-5 h-5 text-pink-400" />,
+    },
+    {
+      id: "automation" as Tab,
+      labelKey: "modules.Automation",
+      icon: <Zap className="w-5 h-5 text-yellow-400" />,
+    },
+    {
+      id: "pricelists" as Tab,
+      labelKey: "modules.PriceLists",
+      icon: <Percent className="w-5 h-5 text-pink-400" />,
+    },
+    {
+      id: "workorders" as Tab,
+      labelKey: "modules.WorkOrders",
+      icon: <ClipboardList className="w-5 h-5 text-indigo-400" />,
+    },
+    {
+      id: "shifts" as Tab,
+      labelKey: "modules.Shifts",
+      icon: <Clock className="w-5 h-5 text-cyan-400" />,
+    },
+    {
+      id: "barcode" as Tab,
+      labelKey: "modules.Barcode",
+      icon: <Barcode className="w-5 h-5 text-orange-400" />,
+    },
+    {
+      id: "seriallot" as Tab,
+      labelKey: "modules.SerialLot",
+      icon: <Hash className="w-5 h-5 text-teal-400" />,
     },
   ];
 
@@ -970,6 +1020,12 @@ export default function OwnerDashboard({
         {tab === "companyprofile" && <CompanyProfileModule />}
         {tab === "training" && <TrainingModule />}
         {tab === "productcatalog" && <ProductCatalogModule />}
+        {tab === "automation" && <AutomationModule />}
+        {tab === "pricelists" && <PriceListModule />}
+        {tab === "workorders" && <WorkOrderModule />}
+        {tab === "shifts" && <ShiftModule />}
+        {tab === "barcode" && <BarcodeModule />}
+        {tab === "seriallot" && <SerialLotModule />}
         {tab === "profile" && (
           <UserProfilePage
             user={user}

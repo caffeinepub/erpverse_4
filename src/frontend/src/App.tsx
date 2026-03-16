@@ -9,9 +9,11 @@ import AuthPage from "./pages/AuthPage";
 import CodeShownPage from "./pages/CodeShownPage";
 import CompanySelectPage from "./pages/CompanySelectPage";
 import CompanySetupPage from "./pages/CompanySetupPage";
+import CustomerPortalPage from "./pages/CustomerPortalPage";
 import LandingPage from "./pages/LandingPage";
 import OwnerDashboard from "./pages/OwnerDashboard";
 import PersonnelDashboard from "./pages/PersonnelDashboard";
+import SupplierPortalPage from "./pages/SupplierPortalPage";
 
 export type AppView =
   | "landing"
@@ -21,7 +23,9 @@ export type AppView =
   | "company-select"
   | "company-setup"
   | "owner-dashboard"
-  | "personnel-dashboard";
+  | "personnel-dashboard"
+  | "customer-portal"
+  | "supplier-portal";
 
 interface NewUserData {
   loginCode: string;
@@ -78,8 +82,6 @@ function AppContent() {
     [actor, user, setCompany, setMembership],
   );
 
-  // Verify that the cached user still exists in the canister.
-  // If not (e.g. canister was redeployed and state was reset), clear stale session.
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentional
   useEffect(() => {
     if (!actor) return;
@@ -141,7 +143,6 @@ function AppContent() {
     setView("company-select");
   };
 
-  // Show spinner while verifying stored session against the canister
   if (!sessionVerified && user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
@@ -162,6 +163,8 @@ function AppContent() {
             setPortalType(portal);
             setView("register");
           }}
+          onCustomerPortal={() => setView("customer-portal")}
+          onSupplierPortal={() => setView("supplier-portal")}
         />
       )}
       {(view === "register" || view === "login") && (
@@ -238,6 +241,12 @@ function AppContent() {
           onLogout={handleLogout}
           onSwitchCompany={handleSwitchCompany}
         />
+      )}
+      {view === "customer-portal" && (
+        <CustomerPortalPage onBack={() => setView("landing")} />
+      )}
+      {view === "supplier-portal" && (
+        <SupplierPortalPage onBack={() => setView("landing")} />
       )}
     </div>
   );

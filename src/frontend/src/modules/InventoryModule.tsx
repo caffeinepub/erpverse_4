@@ -13,6 +13,7 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
+import { useNotifications } from "../contexts/NotificationContext";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 
 interface Product {
@@ -21,6 +22,7 @@ interface Product {
   category: string;
   quantity: number;
   unitPrice: number;
+  minStock: number;
 }
 
 interface AutoPurchaseRequest {
@@ -33,11 +35,10 @@ interface AutoPurchaseRequest {
   status: "pending" | "approved" | "rejected";
 }
 
-const LOW_STOCK_THRESHOLD = 10;
-
 export default function InventoryModule() {
   const { t } = useLanguage();
   const { company } = useAuth();
+  const { addNotification } = useNotifications();
   const companyId = company?.id || "default";
   const [products, setProducts] = useLocalStorage<Product[]>(
     `erpverse_inventory_${companyId}`,
@@ -50,11 +51,12 @@ export default function InventoryModule() {
     category: "",
     quantity: "",
     unitPrice: "",
+    minStock: "",
   });
 
   const totalValue = products.reduce((s, p) => s + p.quantity * p.unitPrice, 0);
   const lowStock = products.filter(
-    (p) => p.quantity < LOW_STOCK_THRESHOLD,
+    (p) => p.quantity <= p.minStock && p.minStock > 0,
   ).length;
   const fmt = (n: number) =>
     n.toLocaleString("tr-TR", {
@@ -65,7 +67,13 @@ export default function InventoryModule() {
 
   const openAdd = () => {
     setEditId(null);
-    setForm({ name: "", category: "", quantity: "", unitPrice: "" });
+    setForm({
+      name: "",
+      category: "",
+      quantity: "",
+      unitPrice: "",
+      minStock: "",
+    });
     setShowDialog(true);
   };
 
@@ -76,6 +84,7 @@ export default function InventoryModule() {
       category: p.category,
       quantity: String(p.quantity),
       unitPrice: String(p.unitPrice),
+      minStock: p.minStock > 0 ? String(p.minStock) : "",
     });
     setShowDialog(true);
   };
@@ -104,11 +113,13 @@ export default function InventoryModule() {
 
   const handleSave = () => {
     if (!form.name.trim()) return;
+    const minStockVal = Number(form.minStock) || 0;
     const data = {
       name: form.name,
       category: form.category,
       quantity: Number(form.quantity) || 0,
       unitPrice: Number(form.unitPrice) || 0,
+      minStock: minStockVal,
     };
     let savedProduct: Product;
     if (editId) {
@@ -120,14 +131,36 @@ export default function InventoryModule() {
       savedProduct = { id: Date.now().toString(), ...data };
       setProducts((prev) => [...prev, savedProduct]);
     }
-    if (savedProduct.quantity < LOW_STOCK_THRESHOLD) {
+    const isLowStock =
+      savedProduct.quantity <= savedProduct.minStock &&
+      savedProduct.minStock > 0;
+    if (isLowStock) {
+      const key = `erpverse_auto_purchase_requests_${companyId}`;
+      const existing: AutoPurchaseRequest[] = JSON.parse(
+        localStorage.getItem(key) || "[]",
+      );
+      const alreadyPending = existing.some(
+        (r) => r.productId === savedProduct.id && r.status === "pending",
+      );
       createAutoPurchaseRequest(savedProduct);
+      if (!alreadyPending) {
+        addNotification({
+          type: "stock_alert",
+          title: t("inventory.stockAlert"),
+          message: `${savedProduct.name} (${savedProduct.quantity}/${savedProduct.minStock})`,
+          companyId,
+          targetRole: "owner",
+        });
+      }
     }
     setShowDialog(false);
   };
 
   const handleDelete = (id: string) =>
     setProducts((prev) => prev.filter((p) => p.id !== id));
+
+  const isLowStockProduct = (p: Product) =>
+    p.quantity <= p.minStock && p.minStock > 0;
 
   return (
     <div className="p-8">
@@ -204,6 +237,9 @@ export default function InventoryModule() {
                 {t("inventory.quantity")}
               </th>
               <th className="text-right text-slate-400 text-xs font-medium px-5 py-3">
+                {t("inventory.minStock")}
+              </th>
+              <th className="text-right text-slate-400 text-xs font-medium px-5 py-3">
                 {t("inventory.unitPrice")}
               </th>
               <th className="text-right text-slate-400 text-xs font-medium px-5 py-3">
@@ -215,7 +251,7 @@ export default function InventoryModule() {
           <tbody>
             {products.length === 0 ? (
               <tr>
-                <td colSpan={6}>
+                <td colSpan={7}>
                   <div
                     className="text-center py-12 text-slate-500"
                     data-ocid="inventory.empty_state"
@@ -230,16 +266,14 @@ export default function InventoryModule() {
                 <tr
                   key={p.id}
                   className={`border-b border-white/5 last:border-0 ${
-                    p.quantity < LOW_STOCK_THRESHOLD
-                      ? "bg-red-500/5"
-                      : "hover:bg-white/2"
+                    isLowStockProduct(p) ? "bg-red-500/5" : "hover:bg-white/2"
                   }`}
                   data-ocid={`inventory.row.${i + 1}`}
                 >
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-2">
                       <p className="text-white font-medium text-sm">{p.name}</p>
-                      {p.quantity < LOW_STOCK_THRESHOLD && (
+                      {isLowStockProduct(p) && (
                         <Badge
                           variant="outline"
                           className="text-xs bg-red-500/20 text-red-300 border-red-500/30"
@@ -254,12 +288,13 @@ export default function InventoryModule() {
                   </td>
                   <td
                     className={`px-5 py-3 text-right font-semibold text-sm ${
-                      p.quantity < LOW_STOCK_THRESHOLD
-                        ? "text-red-400"
-                        : "text-slate-300"
+                      isLowStockProduct(p) ? "text-red-400" : "text-slate-300"
                     }`}
                   >
                     {p.quantity}
+                  </td>
+                  <td className="px-5 py-3 text-right text-slate-400 text-sm">
+                    {p.minStock > 0 ? p.minStock : "—"}
                   </td>
                   <td className="px-5 py-3 text-right text-slate-300 text-sm">
                     {fmt(p.unitPrice)}
@@ -355,6 +390,21 @@ export default function InventoryModule() {
                   className="bg-white/10 border-white/20 text-white"
                 />
               </div>
+            </div>
+            <div>
+              <Label className="text-slate-300 text-sm mb-1.5 block">
+                {t("inventory.minStock")}
+              </Label>
+              <Input
+                type="number"
+                value={form.minStock}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, minStock: e.target.value }))
+                }
+                className="bg-white/10 border-white/20 text-white"
+                placeholder="0"
+                data-ocid="inventory.minstock_input"
+              />
             </div>
             <div className="flex gap-2 pt-2">
               <Button

@@ -22,6 +22,7 @@ import {
   Warehouse,
   Wrench,
 } from "lucide-react";
+import { useState } from "react";
 import {
   Bar,
   BarChart,
@@ -68,6 +69,46 @@ export default function ReportingModule() {
   const { t } = useLanguage();
   const { company } = useAuth();
   const cid = company?.id || "default";
+  // Date range filter state
+  const getDefaultStart = () => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 6);
+    return d.toISOString().slice(0, 10);
+  };
+  const getToday = () => new Date().toISOString().slice(0, 10);
+
+  const [filterStart, setFilterStart] = useState<string>(getDefaultStart);
+  const [filterEnd, setFilterEnd] = useState<string>(getToday);
+
+  const setPreset = (preset: "thisMonth" | "last3" | "last6" | "thisYear") => {
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
+    if (preset === "thisMonth") {
+      const start = new Date(now.getFullYear(), now.getMonth(), 1)
+        .toISOString()
+        .slice(0, 10);
+      setFilterStart(start);
+      setFilterEnd(today);
+    } else if (preset === "last3") {
+      const start = new Date(now.getFullYear(), now.getMonth() - 3, 1)
+        .toISOString()
+        .slice(0, 10);
+      setFilterStart(start);
+      setFilterEnd(today);
+    } else if (preset === "last6") {
+      const start = new Date(now.getFullYear(), now.getMonth() - 6, 1)
+        .toISOString()
+        .slice(0, 10);
+      setFilterStart(start);
+      setFilterEnd(today);
+    } else if (preset === "thisYear") {
+      const start = new Date(now.getFullYear(), 0, 1)
+        .toISOString()
+        .slice(0, 10);
+      setFilterStart(start);
+      setFilterEnd(today);
+    }
+  };
 
   const readLS = (key: string): unknown[] => {
     try {
@@ -319,13 +360,14 @@ export default function ReportingModule() {
   const totalRecords = modules.reduce((sum, m) => sum + m.count, 0);
   const maxCount = Math.max(...modules.map((m) => m.count), 1);
 
-  // Monthly financials chart data (last 6 months)
-  const monthlyData = (() => {
-    const now = new Date();
+  // Monthly financials chart data (filtered by date range)
+  const filteredMonthlyData = (() => {
+    const start = new Date(filterStart);
+    const end = new Date(filterEnd);
     const result: { month: string; income: number; expense: number }[] = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const label = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const cur = new Date(start.getFullYear(), start.getMonth(), 1);
+    while (cur <= end) {
+      const label = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, "0")}`;
       const income = transactions
         .filter((tx) => tx.type === "income" && tx.date?.startsWith(label))
         .reduce((s, tx) => s + (tx.amount || 0), 0);
@@ -337,6 +379,7 @@ export default function ReportingModule() {
         income,
         expense,
       });
+      cur.setMonth(cur.getMonth() + 1);
     }
     return result;
   })();
@@ -659,13 +702,74 @@ export default function ReportingModule() {
           </TabsContent>
 
           <TabsContent value="charts" className="space-y-6">
+            {/* Date Range Filter Bar */}
+            <div className="bg-slate-800/50 rounded-xl p-4 border border-white/5 flex flex-wrap items-center gap-3">
+              <span className="text-slate-400 text-sm font-medium shrink-0">
+                {t("reporting.dateRange")}:
+              </span>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  data-ocid="reporting.this_month_button"
+                  onClick={() => setPreset("thisMonth")}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-slate-700 hover:bg-slate-600 text-slate-200"
+                >
+                  {t("reporting.thisMonth")}
+                </button>
+                <button
+                  type="button"
+                  data-ocid="reporting.last3_months_button"
+                  onClick={() => setPreset("last3")}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-slate-700 hover:bg-slate-600 text-slate-200"
+                >
+                  {t("reporting.last3Months")}
+                </button>
+                <button
+                  type="button"
+                  data-ocid="reporting.last6_months_button"
+                  onClick={() => setPreset("last6")}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-slate-700 hover:bg-slate-600 text-slate-200"
+                >
+                  {t("reporting.last6Months")}
+                </button>
+                <button
+                  type="button"
+                  data-ocid="reporting.this_year_button"
+                  onClick={() => setPreset("thisYear")}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-slate-700 hover:bg-slate-600 text-slate-200"
+                >
+                  {t("reporting.thisYear")}
+                </button>
+              </div>
+              <div className="flex items-center gap-2 ml-auto">
+                <input
+                  data-ocid="reporting.filter_start_input"
+                  type="date"
+                  value={filterStart}
+                  onChange={(e) => setFilterStart(e.target.value)}
+                  className="bg-slate-700 border border-white/10 text-slate-200 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-indigo-500"
+                />
+                <span className="text-slate-500 text-xs">–</span>
+                <input
+                  data-ocid="reporting.filter_end_input"
+                  type="date"
+                  value={filterEnd}
+                  onChange={(e) => setFilterEnd(e.target.value)}
+                  className="bg-slate-700 border border-white/10 text-slate-200 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-indigo-500"
+                />
+                <span className="text-slate-400 text-xs">
+                  {t("reporting.filterResults")}: {filteredMonthlyData.length}
+                </span>
+              </div>
+            </div>
+
             {/* Monthly Income vs Expense */}
             <div className="bg-slate-800 rounded-xl p-6 border border-white/5">
               <h3 className="text-white font-semibold mb-5">
                 {t("reporting.monthlyFinancials")}
               </h3>
               <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={monthlyData} barCategoryGap="30%">
+                <BarChart data={filteredMonthlyData} barCategoryGap="30%">
                   <CartesianGrid
                     strokeDasharray="3 3"
                     stroke="rgba(255,255,255,0.05)"

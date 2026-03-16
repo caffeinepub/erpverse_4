@@ -38,6 +38,7 @@ interface Transaction {
   amount: number;
   date: string;
   category: string;
+  currency?: string;
 }
 
 type BSCategory =
@@ -687,6 +688,9 @@ export default function AccountingModule() {
     `erpverse_tax_${cid}`,
     [],
   );
+  const [invoices] = useLocalStorage<
+    Array<{ vatRate?: number; vatAmount?: number; status: string }>
+  >(`erp_invoices_${cid}`, []);
 
   const [showDialog, setShowDialog] = useState(false);
   const [form, setForm] = useState({
@@ -695,6 +699,7 @@ export default function AccountingModule() {
     amount: "",
     date: "",
     category: "",
+    currency: "TRY",
   });
 
   const [showBSDialog, setShowBSDialog] = useState(false);
@@ -724,6 +729,29 @@ export default function AccountingModule() {
       maximumFractionDigits: 0,
     });
 
+  const CURRENCY_SYMBOLS: Record<string, string> = {
+    TRY: "₺",
+    USD: "$",
+    EUR: "€",
+    GBP: "£",
+  };
+  const getExchangeRates = () => {
+    try {
+      return JSON.parse(localStorage.getItem("erp_exchange_rates") || "{}");
+    } catch {
+      return {};
+    }
+  };
+  const fmtWithCurrency = (amount: number, currency?: string) => {
+    const cur = currency || "TRY";
+    const sym = CURRENCY_SYMBOLS[cur] || "₺";
+    const display = `${sym}${amount.toLocaleString("tr-TR", { maximumFractionDigits: 2 })}`;
+    if (cur === "TRY") return display;
+    const rates = getExchangeRates();
+    const rate = rates[cur] || 1;
+    return `${display} (${fmt(Math.round(amount * rate))})`;
+  };
+
   const handleSave = () => {
     if (!form.description.trim() || !form.amount) return;
     setTransactions((prev) => [
@@ -734,6 +762,7 @@ export default function AccountingModule() {
         amount: Number(form.amount),
         date: form.date || new Date().toISOString().slice(0, 10),
         category: form.category || "Genel",
+        currency: form.currency || "TRY",
       },
       ...prev,
     ]);
@@ -742,6 +771,7 @@ export default function AccountingModule() {
       description: "",
       amount: "",
       date: "",
+      currency: "TRY",
       category: "",
     });
     setShowDialog(false);
@@ -1003,7 +1033,7 @@ export default function AccountingModule() {
                       className={`px-5 py-3 text-right font-semibold text-sm ${tx.type === "income" ? "text-emerald-400" : "text-red-400"}`}
                     >
                       {tx.type === "income" ? "+" : "-"}
-                      {fmt(tx.amount)}
+                      {fmtWithCurrency(tx.amount, tx.currency)}
                     </td>
                   </tr>
                 ))}
@@ -1335,6 +1365,69 @@ export default function AccountingModule() {
                 </div>
               )}
             </div>
+            <div className="bg-slate-800 rounded-xl border border-white/5 p-5">
+              <h3 className="text-amber-400 font-semibold mb-3">
+                {t("invoice.vatSummary")}
+              </h3>
+              {(() => {
+                const paidWithVat = invoices.filter(
+                  (i) => i.status === "paid" && (i.vatRate ?? 0) > 0,
+                );
+                if (paidWithVat.length === 0) {
+                  return (
+                    <p
+                      className="text-slate-500 text-sm"
+                      data-ocid="accounting.vat.empty_state"
+                    >
+                      {t("common.noData")}
+                    </p>
+                  );
+                }
+                const groups: Record<number, { count: number; total: number }> =
+                  {};
+                for (const inv of paidWithVat) {
+                  const r = inv.vatRate ?? 0;
+                  if (!groups[r]) groups[r] = { count: 0, total: 0 };
+                  groups[r].count += 1;
+                  groups[r].total += inv.vatAmount ?? 0;
+                }
+                const totalVat = Object.values(groups).reduce(
+                  (s, g) => s + g.total,
+                  0,
+                );
+                const fmt2 = (n: number) =>
+                  n.toLocaleString("tr-TR", {
+                    style: "currency",
+                    currency: "TRY",
+                    maximumFractionDigits: 0,
+                  });
+                return (
+                  <div className="space-y-2">
+                    {Object.entries(groups).map(([rate, g]) => (
+                      <div
+                        key={rate}
+                        className="flex items-center justify-between py-1.5 border-b border-white/5 text-sm"
+                      >
+                        <span className="text-slate-300">
+                          %{rate} → {g.count} {t("invoice.invoices")}
+                        </span>
+                        <span className="text-amber-300">
+                          {t("accounting.taxAmount")}: {fmt2(g.total)}
+                        </span>
+                      </div>
+                    ))}
+                    <div className="pt-2 border-t border-white/10 flex items-center justify-between">
+                      <span className="text-slate-400 text-sm">
+                        {t("invoice.totalVatCollected")}
+                      </span>
+                      <span className="text-amber-400 font-bold">
+                        {fmt2(totalVat)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
           </div>
         </TabsContent>
         {/* ---- Banka Hesapları ---- */}
@@ -1449,6 +1542,36 @@ export default function AccountingModule() {
                 }
                 className="bg-white/10 border-white/20 text-white"
               />
+            </div>
+            <div>
+              <Label className="text-slate-300 text-sm mb-1.5 block">
+                {t("currency")}
+              </Label>
+              <Select
+                value={form.currency}
+                onValueChange={(v) => setForm((p) => ({ ...p, currency: v }))}
+              >
+                <SelectTrigger
+                  className="bg-white/10 border-white/20 text-white"
+                  data-ocid="accounting.currency.select"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-800 border-white/10">
+                  <SelectItem value="TRY" className="text-white">
+                    ₺ TRY
+                  </SelectItem>
+                  <SelectItem value="USD" className="text-white">
+                    $ USD
+                  </SelectItem>
+                  <SelectItem value="EUR" className="text-white">
+                    € EUR
+                  </SelectItem>
+                  <SelectItem value="GBP" className="text-white">
+                    £ GBP
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label className="text-slate-300 text-sm mb-1.5 block">

@@ -24,6 +24,28 @@ import { useNotifications } from "../contexts/NotificationContext";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 
 type InvoiceStatus = "draft" | "sent" | "paid" | "overdue";
+type Currency = "TRY" | "USD" | "EUR" | "GBP";
+
+const CURRENCY_SYMBOLS: Record<Currency, string> = {
+  TRY: "₺",
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+};
+
+interface ExchangeRates {
+  USD: number;
+  EUR: number;
+  GBP: number;
+}
+
+function getExchangeRates(): ExchangeRates {
+  try {
+    const saved = localStorage.getItem("erp_exchange_rates");
+    if (saved) return JSON.parse(saved);
+  } catch {}
+  return { USD: 32, EUR: 35, GBP: 40 };
+}
 
 export interface Invoice {
   id: string;
@@ -33,6 +55,10 @@ export interface Invoice {
   dueDate: string;
   status: InvoiceStatus;
   createdAt: string;
+  vatRate?: number;
+  vatAmount?: number;
+  totalWithVat?: number;
+  currency?: Currency;
 }
 
 function getStatusColor(status: InvoiceStatus) {
@@ -72,6 +98,8 @@ export default function InvoiceTab({
     description: "",
     amount: "",
     dueDate: "",
+    vatRate: "18",
+    currency: "TRY" as Currency,
   });
 
   const fmt = (n: number) =>
@@ -80,6 +108,11 @@ export default function InvoiceTab({
       currency: "TRY",
       maximumFractionDigits: 0,
     });
+
+  const fmtCurrency = (n: number, currency: Currency) => {
+    const sym = CURRENCY_SYMBOLS[currency];
+    return `${sym}${n.toLocaleString("tr-TR", { maximumFractionDigits: 2 })}`;
+  };
 
   // Auto-detect overdue invoices every render
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentional
@@ -113,23 +146,38 @@ export default function InvoiceTab({
 
   const handleAdd = () => {
     if (!form.customerName.trim() || !form.amount || !form.dueDate) return;
+    const vatRate = Number(form.vatRate);
+    const amount = Number(form.amount);
+    const vatAmount = Math.round((amount * vatRate) / 100);
+    const totalWithVat = amount + vatAmount;
     const newInv: Invoice = {
       id: Date.now().toString(),
       customerName: form.customerName,
       description: form.description,
-      amount: Number(form.amount),
+      amount,
       dueDate: form.dueDate,
       status: "draft",
       createdAt: new Date().toISOString().slice(0, 10),
+      vatRate,
+      vatAmount,
+      totalWithVat,
+      currency: form.currency,
     };
     setInvoices((prev) => [newInv, ...prev]);
     addLog({
       action: t("invoice.create_invoice"),
       module: "Accounting",
-      detail: `${form.customerName} - ${fmt(Number(form.amount))}`,
+      detail: `${form.customerName} - ${fmtCurrency(totalWithVat, form.currency)}`,
     });
     toast.success(t("invoice.create_invoice"));
-    setForm({ customerName: "", description: "", amount: "", dueDate: "" });
+    setForm({
+      customerName: "",
+      description: "",
+      amount: "",
+      dueDate: "",
+      vatRate: "18",
+      currency: "TRY",
+    });
     setShowDialog(false);
   };
 
@@ -137,14 +185,22 @@ export default function InvoiceTab({
     setInvoices((prev) =>
       prev.map((i) => (i.id === inv.id ? { ...i, status: "paid" } : i)),
     );
+    const payAmount = inv.totalWithVat ?? inv.amount;
+    // Convert to TRY for accounting entry
+    const rates = getExchangeRates();
+    const currency = inv.currency || "TRY";
+    const tryAmount =
+      currency === "TRY"
+        ? payAmount
+        : payAmount * (rates[currency as keyof ExchangeRates] || 1);
     onCreateIncomeEntry(
       `${t("invoice.invoice_management")}: ${inv.customerName} - ${inv.description}`,
-      inv.amount,
+      tryAmount,
     );
     addLog({
       action: t("invoice.mark_paid"),
       module: "Accounting",
-      detail: `${inv.customerName} - ${fmt(inv.amount)}`,
+      detail: `${inv.customerName} - ${fmtCurrency(payAmount, currency)}`,
     });
     toast.success(t("invoice.mark_paid"));
   };
@@ -164,13 +220,16 @@ export default function InvoiceTab({
       ? invoices
       : invoices.filter((i) => i.status === filterStatus);
 
-  const totalAmount = invoices.reduce((s, i) => s + i.amount, 0);
+  const totalAmount = invoices.reduce(
+    (s, i) => s + (i.totalWithVat ?? i.amount),
+    0,
+  );
   const paidAmount = invoices
     .filter((i) => i.status === "paid")
-    .reduce((s, i) => s + i.amount, 0);
+    .reduce((s, i) => s + (i.totalWithVat ?? i.amount), 0);
   const overdueAmount = invoices
     .filter((i) => i.status === "overdue")
-    .reduce((s, i) => s + i.amount, 0);
+    .reduce((s, i) => s + (i.totalWithVat ?? i.amount), 0);
   const paidPct =
     totalAmount > 0 ? Math.round((paidAmount / totalAmount) * 100) : 0;
 
@@ -180,6 +239,16 @@ export default function InvoiceTab({
     paid: t("invoice.paid"),
     overdue: t("invoice.overdue"),
   };
+
+  // TRY equivalent for preview
+  const rates = getExchangeRates();
+  const previewAmount = Number(form.amount) || 0;
+  const previewVat = Math.round((previewAmount * Number(form.vatRate)) / 100);
+  const previewTotal = previewAmount + previewVat;
+  const previewTRY =
+    form.currency === "TRY"
+      ? null
+      : previewTotal * (rates[form.currency as keyof ExchangeRates] || 1);
 
   return (
     <div>
@@ -257,86 +326,121 @@ export default function InvoiceTab({
         </div>
       ) : (
         <div className="space-y-2">
-          {filtered.map((inv, i) => (
-            <div
-              key={inv.id}
-              className={`flex items-center justify-between bg-slate-800 rounded-xl px-5 py-4 border ${
-                inv.status === "overdue"
-                  ? "border-red-500/30"
-                  : "border-white/5"
-              }`}
-              data-ocid={`invoice.item.${i + 1}`}
-            >
-              <div className="flex items-start gap-3">
-                {inv.status === "overdue" && (
-                  <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
-                )}
-                <div>
-                  <p className="text-white font-medium">{inv.customerName}</p>
-                  <p className="text-slate-400 text-xs">{inv.description}</p>
-                  <p className="text-slate-500 text-xs mt-0.5">
-                    {t("invoice.due_date")}: {inv.dueDate}
-                  </p>
+          {filtered.map((inv, i) => {
+            const currency = (inv.currency || "TRY") as Currency;
+            const sym = CURRENCY_SYMBOLS[currency];
+            const invRates = getExchangeRates();
+            const tryEquiv =
+              currency !== "TRY"
+                ? (inv.totalWithVat ?? inv.amount) *
+                  (invRates[currency as keyof ExchangeRates] || 1)
+                : null;
+            return (
+              <div
+                key={inv.id}
+                className={`flex items-center justify-between bg-slate-800 rounded-xl px-5 py-4 border ${
+                  inv.status === "overdue"
+                    ? "border-red-500/30"
+                    : "border-white/5"
+                }`}
+                data-ocid={`invoice.item.${i + 1}`}
+              >
+                <div className="flex items-start gap-3">
+                  {inv.status === "overdue" && (
+                    <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
+                  )}
+                  <div>
+                    <p className="text-white font-medium">{inv.customerName}</p>
+                    <p className="text-slate-400 text-xs">{inv.description}</p>
+                    <p className="text-slate-500 text-xs mt-0.5">
+                      {t("invoice.due_date")}: {inv.dueDate}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="text-right">
-                  <p className="text-white font-bold">{fmt(inv.amount)}</p>
-                  <p className="text-xs text-slate-500">{inv.createdAt}</p>
-                </div>
-                <Select
-                  value={inv.status}
-                  onValueChange={(v) =>
-                    handleStatusChange(inv.id, v as InvoiceStatus)
-                  }
-                >
-                  <SelectTrigger
-                    className="h-7 w-32 bg-transparent border-0 p-0"
-                    data-ocid={`invoice.status.select.${i + 1}`}
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <p className="text-white font-bold">
+                      {sym}
+                      {inv.amount.toLocaleString("tr-TR")}
+                    </p>
+                    {(inv.vatRate ?? 0) > 0 && (
+                      <>
+                        <p className="text-xs text-amber-300">
+                          {t("invoice.vatRate")} %{inv.vatRate}: +{sym}
+                          {(inv.vatAmount ?? 0).toLocaleString("tr-TR")}
+                        </p>
+                        <p className="text-xs text-white font-bold">
+                          {t("invoice.totalWithVat")}: {sym}
+                          {(inv.totalWithVat ?? inv.amount).toLocaleString(
+                            "tr-TR",
+                          )}
+                        </p>
+                      </>
+                    )}
+                    {tryEquiv !== null && (
+                      <p className="text-xs text-amber-300">
+                        {t("tryEquivalent")}: {fmt(Math.round(tryEquiv))}
+                      </p>
+                    )}
+                    <p className="text-xs text-slate-500">{inv.createdAt}</p>
+                  </div>
+                  <Select
+                    value={inv.status}
+                    onValueChange={(v) =>
+                      handleStatusChange(inv.id, v as InvoiceStatus)
+                    }
                   >
-                    <Badge
-                      variant="outline"
-                      className={`text-xs ${getStatusColor(inv.status)}`}
+                    <SelectTrigger
+                      className="h-7 w-32 bg-transparent border-0 p-0"
+                      data-ocid={`invoice.status.select.${i + 1}`}
                     >
-                      {statusLabels[inv.status]}
-                    </Badge>
-                  </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-white/10">
-                    <SelectItem value="draft" className="text-white text-xs">
-                      {t("invoice.draft")}
-                    </SelectItem>
-                    <SelectItem value="sent" className="text-white text-xs">
-                      {t("invoice.sent")}
-                    </SelectItem>
-                    <SelectItem value="paid" className="text-white text-xs">
-                      {t("invoice.paid")}
-                    </SelectItem>
-                    <SelectItem value="overdue" className="text-white text-xs">
-                      {t("invoice.overdue")}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                {inv.status !== "paid" && (
-                  <Button
-                    size="sm"
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white h-7 px-3 text-xs"
-                    onClick={() => handlePay(inv)}
-                    data-ocid={`invoice.primary_button.${i + 1}`}
+                      <Badge
+                        variant="outline"
+                        className={`text-xs ${getStatusColor(inv.status)}`}
+                      >
+                        {statusLabels[inv.status]}
+                      </Badge>
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-800 border-white/10">
+                      <SelectItem value="draft" className="text-white text-xs">
+                        {t("invoice.draft")}
+                      </SelectItem>
+                      <SelectItem value="sent" className="text-white text-xs">
+                        {t("invoice.sent")}
+                      </SelectItem>
+                      <SelectItem value="paid" className="text-white text-xs">
+                        {t("invoice.paid")}
+                      </SelectItem>
+                      <SelectItem
+                        value="overdue"
+                        className="text-white text-xs"
+                      >
+                        {t("invoice.overdue")}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {inv.status !== "paid" && (
+                    <Button
+                      size="sm"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white h-7 px-3 text-xs"
+                      onClick={() => handlePay(inv)}
+                      data-ocid={`invoice.primary_button.${i + 1}`}
+                    >
+                      {t("invoice.mark_paid")}
+                    </Button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(inv.id)}
+                    className="text-slate-500 hover:text-red-400 transition-colors"
+                    data-ocid={`invoice.delete_button.${i + 1}`}
                   >
-                    {t("invoice.mark_paid")}
-                  </Button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => handleDelete(inv.id)}
-                  className="text-slate-500 hover:text-red-400 transition-colors"
-                  data-ocid={`invoice.delete_button.${i + 1}`}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -380,7 +484,74 @@ export default function InvoiceTab({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-slate-300 text-sm mb-1.5 block">
-                  {t("invoice.amount")}
+                  {t("currency")}
+                </Label>
+                <Select
+                  value={form.currency}
+                  onValueChange={(v) =>
+                    setForm((p) => ({ ...p, currency: v as Currency }))
+                  }
+                >
+                  <SelectTrigger
+                    className="bg-white/10 border-white/20 text-white"
+                    data-ocid="invoice.currency.select"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-white/10">
+                    <SelectItem value="TRY" className="text-white">
+                      ₺ TRY
+                    </SelectItem>
+                    <SelectItem value="USD" className="text-white">
+                      $ USD
+                    </SelectItem>
+                    <SelectItem value="EUR" className="text-white">
+                      € EUR
+                    </SelectItem>
+                    <SelectItem value="GBP" className="text-white">
+                      £ GBP
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-slate-300 text-sm mb-1.5 block">
+                  {t("invoice.vatRate")}
+                </Label>
+                <Select
+                  value={form.vatRate}
+                  onValueChange={(v) => setForm((p) => ({ ...p, vatRate: v }))}
+                >
+                  <SelectTrigger
+                    className="bg-white/10 border-white/20 text-white"
+                    data-ocid="invoice.vat_rate.select"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-white/10">
+                    <SelectItem value="0" className="text-white">
+                      %0
+                    </SelectItem>
+                    <SelectItem value="1" className="text-white">
+                      %1
+                    </SelectItem>
+                    <SelectItem value="8" className="text-white">
+                      %8
+                    </SelectItem>
+                    <SelectItem value="18" className="text-white">
+                      %18
+                    </SelectItem>
+                    <SelectItem value="20" className="text-white">
+                      %20
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-slate-300 text-sm mb-1.5 block">
+                  {t("invoice.amount")} ({CURRENCY_SYMBOLS[form.currency]})
                 </Label>
                 <Input
                   type="number"
@@ -405,6 +576,32 @@ export default function InvoiceTab({
                 />
               </div>
             </div>
+            {Number(form.vatRate) > 0 && form.amount && (
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-sm">
+                <p className="text-amber-300">
+                  {t("invoice.vatAmount")}: {CURRENCY_SYMBOLS[form.currency]}
+                  {previewVat.toLocaleString("tr-TR")}
+                </p>
+                <p className="text-white font-bold">
+                  {t("invoice.totalWithVat")}: {CURRENCY_SYMBOLS[form.currency]}
+                  {previewTotal.toLocaleString("tr-TR")}
+                </p>
+                {previewTRY !== null && (
+                  <p className="text-emerald-300 text-xs mt-1">
+                    {t("tryEquivalent")}: {fmt(Math.round(previewTRY))}
+                  </p>
+                )}
+              </div>
+            )}
+            {Number(form.vatRate) === 0 &&
+              form.amount &&
+              previewTRY !== null && (
+                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-sm">
+                  <p className="text-blue-300">
+                    {t("tryEquivalent")}: {fmt(Math.round(previewTRY))}
+                  </p>
+                </div>
+              )}
           </div>
           <div className="flex justify-end gap-3 mt-6">
             <Button

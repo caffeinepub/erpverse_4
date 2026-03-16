@@ -3,6 +3,8 @@ import {
   ChevronRight,
   Globe,
   ShieldCheck,
+  ShoppingBag,
+  Truck,
   UserCircle,
   Users,
 } from "lucide-react";
@@ -73,9 +75,16 @@ const portals: PortalCard[] = [
 interface Props {
   onLogin: (portal: PortalType) => void;
   onRegister: (portal: PortalType) => void;
+  onCustomerPortal: () => void;
+  onSupplierPortal: () => void;
 }
 
-export default function LandingPage({ onLogin, onRegister }: Props) {
+export default function LandingPage({
+  onLogin,
+  onRegister,
+  onCustomerPortal,
+  onSupplierPortal,
+}: Props) {
   const { t, language, setLanguage } = useLanguage();
 
   return (
@@ -131,14 +140,13 @@ export default function LandingPage({ onLogin, onRegister }: Props) {
       </div>
 
       {/* Portal Cards */}
-      <div className="max-w-6xl mx-auto px-4 pb-16">
+      <div className="max-w-6xl mx-auto px-4 pb-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {portals.map((portal, _i) => (
+          {portals.map((portal) => (
             <div
               key={portal.type}
               className={`relative rounded-2xl border ${portal.border} bg-slate-800/50 backdrop-blur-sm overflow-hidden group hover:scale-[1.02] transition-all duration-200`}
             >
-              {/* Gradient top bar */}
               <div
                 className={`h-1 w-full bg-gradient-to-r ${portal.gradient}`}
               />
@@ -175,6 +183,62 @@ export default function LandingPage({ onLogin, onRegister }: Props) {
             </div>
           ))}
         </div>
+
+        {/* External Portals */}
+        <div className="mt-6 flex flex-col sm:flex-row justify-center gap-4">
+          {/* Customer Portal */}
+          <button
+            type="button"
+            onClick={onCustomerPortal}
+            data-ocid="landing.customer_portal.button"
+            className="group flex items-center gap-3 px-8 py-4 rounded-2xl border border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 to-teal-500/10 hover:from-cyan-500/20 hover:to-teal-500/20 transition-all duration-200 hover:scale-[1.02]"
+          >
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center">
+              <ShoppingBag className="w-5 h-5 text-white" />
+            </div>
+            <div className="text-left">
+              <p className="font-semibold text-cyan-300 text-sm">
+                Müşteri Girişi
+              </p>
+              <p className="text-xs text-slate-400">Fatura ve sipariş takibi</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-cyan-400 ml-2 group-hover:translate-x-1 transition-transform" />
+          </button>
+
+          {/* Supplier Portal */}
+          <button
+            type="button"
+            onClick={onSupplierPortal}
+            data-ocid="landing.supplier_portal.button"
+            className="group flex items-center gap-3 px-8 py-4 rounded-2xl border border-orange-500/30 bg-gradient-to-r from-orange-500/10 to-amber-500/10 hover:from-orange-500/20 hover:to-amber-500/20 transition-all duration-200 hover:scale-[1.02]"
+          >
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center">
+              <Truck className="w-5 h-5 text-white" />
+            </div>
+            <div className="text-left">
+              <p className="font-semibold text-orange-300 text-sm">
+                Tedarikçi Girişi
+              </p>
+              <p className="text-xs text-slate-400">
+                Sipariş ve sevkiyat takibi
+              </p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-orange-400 ml-2 group-hover:translate-x-1 transition-transform" />
+          </button>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="text-center pb-8 text-xs text-slate-500">
+        © {new Date().getFullYear()}. Built with love using{" "}
+        <a
+          href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
+          target="_blank"
+          rel="noreferrer"
+          className="text-blue-400 hover:underline"
+        >
+          caffeine.ai
+        </a>
       </div>
     </div>
   );
