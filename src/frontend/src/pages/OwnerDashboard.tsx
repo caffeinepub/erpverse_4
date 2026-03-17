@@ -8,9 +8,11 @@ import {
   ClipboardList,
   Clock,
   DollarSign,
+  Download,
   Factory,
   FileText,
   FolderKanban,
+  GitMerge,
   Globe,
   GraduationCap,
   Handshake,
@@ -73,10 +75,12 @@ import CalendarModule from "../modules/CalendarModule";
 import CompanyProfileModule from "../modules/CompanyProfileModule";
 import ContractModule from "../modules/ContractModule";
 import CustomerServiceModule from "../modules/CustomerServiceModule";
+import DataExportModule from "../modules/DataExportModule";
 import DocumentModule from "../modules/DocumentModule";
 import HRModule from "../modules/HRModule";
 import InventoryModule from "../modules/InventoryModule";
 import MaintenanceModule from "../modules/MaintenanceModule";
+import MultiLevelApprovalModule from "../modules/MultiLevelApprovalModule";
 import PayrollModule from "../modules/PayrollModule";
 import PersonalizedDashboardWidget, {
   trackModuleAccess,
@@ -142,7 +146,9 @@ type Tab =
   | "workorders"
   | "shifts"
   | "barcode"
-  | "seriallot";
+  | "seriallot"
+  | "approvals"
+  | "dataexport";
 
 const ALL_MODULES = [
   "HR",
@@ -557,6 +563,16 @@ export default function OwnerDashboard({
       id: "seriallot" as Tab,
       labelKey: "modules.SerialLot",
       icon: <Hash className="w-5 h-5 text-teal-400" />,
+    },
+    {
+      id: "approvals" as Tab,
+      labelKey: "modules.Approvals",
+      icon: <GitMerge className="w-5 h-5 text-violet-400" />,
+    },
+    {
+      id: "dataexport" as Tab,
+      labelKey: "dataexport.title",
+      icon: <Download className="w-5 h-5 text-blue-400" />,
     },
   ];
 
@@ -1026,6 +1042,8 @@ export default function OwnerDashboard({
         {tab === "shifts" && <ShiftModule />}
         {tab === "barcode" && <BarcodeModule />}
         {tab === "seriallot" && <SerialLotModule />}
+        {tab === "approvals" && <MultiLevelApprovalModule />}
+        {tab === "dataexport" && <DataExportModule />}
         {tab === "profile" && (
           <UserProfilePage
             user={user}

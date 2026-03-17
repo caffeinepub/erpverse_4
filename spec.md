@@ -1,25 +1,21 @@
 # ERPVerse
 
 ## Current State
-ERPVerse ERP - 30+ modules, sidebar nav with NotificationBell. All module data in localStorage. No cross-module search.
+v49 has Data Export module. Audit Log panel already exists. 49 versions of incremental ERP features implemented.
 
 ## Requested Changes (Diff)
 
 ### Add
-- GlobalSearch component: search icon in sidebar near NotificationBell, opens modal overlay
-- Modal text input with live results from all major localStorage modules grouped by module type
-- Modules: HR personnel, CRM customers, Projects, Inventory, Tasks, Contracts, Invoices, Product catalog, Training, Suppliers
-- Results show module badge + item name; clicking navigates to that module tab
-- Added to both OwnerDashboard and PersonnelDashboard
+- Import tab to DataExportModule: file picker, JSON parsing, module detection, confirmation warning, restore to localStorage
+- Translation keys: dataexport.exportTab, importTab, importSubtitle, importButton, importSuccess, importError, importWarning, selectFile for all 8 languages
 
 ### Modify
-- OwnerDashboard: add GlobalSearch next to NotificationBell
-- PersonnelDashboard: same
+- DataExportModule: add Export/Import tab switcher, import flow with file read, preview of modules, confirmation step
 
 ### Remove
-- Nothing
+- Nothing removed
 
 ## Implementation Plan
-1. Create GlobalSearch.tsx component
-2. Integrate into OwnerDashboard
-3. Integrate into PersonnelDashboard
+1. Add translation keys to LanguageContext for all 8 languages
+2. Update DataExportModule with tabbed interface (Export + Import)
+3. Import tab: file picker dropzone, JSON parse, module list preview, confirmation dialog, localStorage restore
