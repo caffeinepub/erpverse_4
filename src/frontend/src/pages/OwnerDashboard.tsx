@@ -98,6 +98,7 @@ import SerialLotModule from "../modules/SerialLotModule";
 import ShiftModule from "../modules/ShiftModule";
 import SupplyChainModule from "../modules/SupplyChainModule";
 import TaskModule from "../modules/TaskModule";
+import TimesheetModule from "../modules/TimesheetModule";
 import TradeModule from "../modules/TradeModule";
 import TrainingModule from "../modules/TrainingModule";
 import WarehouseModule from "../modules/WarehouseModule";
@@ -148,7 +149,8 @@ type Tab =
   | "barcode"
   | "seriallot"
   | "approvals"
-  | "dataexport";
+  | "dataexport"
+  | "timesheet";
 
 const ALL_MODULES = [
   "HR",
@@ -573,6 +575,11 @@ export default function OwnerDashboard({
       id: "dataexport" as Tab,
       labelKey: "dataexport.title",
       icon: <Download className="w-5 h-5 text-blue-400" />,
+    },
+    {
+      id: "timesheet" as Tab,
+      labelKey: "timesheet.title",
+      icon: <Clock className="w-5 h-5 text-emerald-400" />,
     },
   ];
 
@@ -1044,6 +1051,7 @@ export default function OwnerDashboard({
         {tab === "seriallot" && <SerialLotModule />}
         {tab === "approvals" && <MultiLevelApprovalModule />}
         {tab === "dataexport" && <DataExportModule />}
+        {tab === "timesheet" && <TimesheetModule />}
         {tab === "profile" && (
           <UserProfilePage
             user={user}

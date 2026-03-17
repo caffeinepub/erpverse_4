@@ -68,6 +68,7 @@ import SalesModule from "../modules/SalesModule";
 import ShiftModule from "../modules/ShiftModule";
 import SupplyChainModule from "../modules/SupplyChainModule";
 import TaskModule from "../modules/TaskModule";
+import TimesheetModule from "../modules/TimesheetModule";
 import TradeModule from "../modules/TradeModule";
 import TrainingModule from "../modules/TrainingModule";
 import WarehouseModule from "../modules/WarehouseModule";
@@ -220,6 +221,11 @@ const MODULE_CONFIG: Record<
     icon: <UserCheck className="w-7 h-7" />,
     color: "text-violet-400",
     bg: "bg-violet-500/10 border-violet-500/20",
+  },
+  Timesheet: {
+    icon: <Clock className="w-7 h-7" />,
+    color: "text-emerald-400",
+    bg: "bg-emerald-500/10 border-emerald-500/20",
   },
 };
 
@@ -445,6 +451,7 @@ export default function PersonnelDashboard({
           {activeModule === "ProductCatalog" && <ProductCatalogModule />}
           {activeModule === "Shifts" && <ShiftModule />}
           {activeModule === "Barcode" && <BarcodeModule />}
+          {activeModule === "Timesheet" && <TimesheetModule />}
           {activeModule === "SelfService" && (
             <PersonnelSelfServiceModule
               user={user}
@@ -480,6 +487,7 @@ export default function PersonnelDashboard({
             "ProductCatalog",
             "Shifts",
             "Barcode",
+            "Timesheet",
             "SelfService",
           ].includes(activeModule) && (
             <div className="flex items-center justify-center h-64">

@@ -1,21 +1,24 @@
 # ERPVerse
 
 ## Current State
-v49 has Data Export module. Audit Log panel already exists. 49 versions of incremental ERP features implemented.
+v50: Full Data Export/Import modülü mevcut. Sistemde v12'den beri audit log kaydı tutuluyor ancak kullanıcıya görsel bir ekranda sunulmuyor.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Import tab to DataExportModule: file picker, JSON parsing, module detection, confirmation warning, restore to localStorage
-- Translation keys: dataexport.exportTab, importTab, importSubtitle, importButton, importSuccess, importError, importWarning, selectFile for all 8 languages
+- Sol menüye "Denetim İzi" (Audit Log) sekmesi eklenmesi
+- Tüm modüllerdeki değişikliklerin (oluşturma, güncelleme, silme) listelenmesi
+- Modül, eylem tipi ve tarih aralığına göre filtreleme
+- Her kayıtta: zaman damgası, kullanıcı, modül, eylem, detay
 
 ### Modify
-- DataExportModule: add Export/Import tab switcher, import flow with file read, preview of modules, confirmation step
+- OwnerDashboard: Denetim İzi sekmesi eklenmesi
 
 ### Remove
-- Nothing removed
+- Yok
 
 ## Implementation Plan
-1. Add translation keys to LanguageContext for all 8 languages
-2. Update DataExportModule with tabbed interface (Export + Import)
-3. Import tab: file picker dropzone, JSON parse, module list preview, confirmation dialog, localStorage restore
+1. AuditLogModule component oluştur (filtreleme + tablo görünümü)
+2. localStorage'dan mevcut audit log verilerini oku; yoksa demo kayıtlar oluştur
+3. OwnerDashboard menüsüne sekme ekle
+4. Modül bazlı log yazma helper'ını diğer modüllerde kullan (mevcut pattern'a uygun)
