@@ -1,27 +1,30 @@
 # ERPVerse
 
 ## Current State
-v53 -- Denetim İzi (Audit Log) panel eklendi. OwnerDashboard'da 48 tab mevcut. HR personel verileri localStorage'da `erpverse_hr_${companyId}` anahtarıyla saklanıyor. Her personelin name, role, department alanları var. Tab tipi bir union type olarak tanımlanmış.
+v56 build with 55+ ERP modules. Last added: Kalite Kontrol Checklist (QualityChecklistModule).
 
 ## Requested Changes (Diff)
 
 ### Add
-- `OrgChartPanel` React bileşeni: şirket personelini rol hiyerarşisine göre görsel ağaç yapısında gösteren panel
-- OwnerDashboard'a `orgchart` tab'ı eklenmesi
-- Tab type'a `orgchart` eklenmesi
-- navItems'a OrgChart girişi eklenmesi
+- KPI Hedef Yönetimi (KPI Goal Management) module
+  - KPI tanımlama: başlık, kategori (Satış/HR/Üretim/Finans/Genel), hedef değer, birim, başlangıç/bitiş tarihi
+  - KPI güncelleme: mevcut değer girişi, ilerleme yüzdesi otomatik hesaplanır
+  - Durum takibi: Aktif/Tamamlandı/Gecikmeli (otomatik bitiş tarihine göre)
+  - Departman bazlı filtreleme
+  - Progress bar ile görsel ilerleme gösterimi
+  - localStorage'a kaydedilir
+  - OwnerDashboard ve PersonnelDashboard'a eklenir
 
 ### Modify
-- OwnerDashboard.tsx: Tab type, navItems, render switch'e orgchart eklenmesi
+- OwnerDashboard: Tab type + nav item + render for "kpi"
+- PersonnelDashboard: same additions
+- translations: kpi.* keys added
 
 ### Remove
-- Hiçbir şey kaldırılmıyor
+- Nothing removed
 
 ## Implementation Plan
-1. `OrgChartPanel.tsx` oluştur:
-   - localStorage'dan HR personel verisini oku
-   - Sahibi (Owner) en üstte, altında Yöneticiler, altında İdareciler, en altta Personel
-   - Her rol için kart: isim, departman, rol rozeti
-   - Saf CSS/Tailwind ile tree layout (svg çizgileri ile bağlantı)
-   - t() ile çevrilebilir tüm metinler
-2. OwnerDashboard.tsx'e `orgchart` tab ekle (Tab type + navItem + render)
+1. Create `src/frontend/src/modules/KPIModule.tsx`
+2. Add `kpi` tab to OwnerDashboard
+3. Add `kpi` tab to PersonnelDashboard
+4. Add translation keys

@@ -5,6 +5,7 @@ import {
   Building2,
   CalendarDays,
   CheckSquare,
+  ClipboardCheck,
   ClipboardList,
   Clock,
   DollarSign,
@@ -12,6 +13,7 @@ import {
   Factory,
   FileText,
   FolderKanban,
+  Gift,
   GitBranch,
   GitMerge,
   Globe,
@@ -32,6 +34,7 @@ import {
   ShoppingBag,
   ShoppingCart,
   Tags,
+  Target,
   Trash2,
   TrendingUp,
   User,
@@ -83,6 +86,8 @@ import DataExportModule from "../modules/DataExportModule";
 import DocumentModule from "../modules/DocumentModule";
 import HRModule from "../modules/HRModule";
 import InventoryModule from "../modules/InventoryModule";
+import KPIModule from "../modules/KPIModule";
+import LoyaltyModule from "../modules/LoyaltyModule";
 import MaintenanceModule from "../modules/MaintenanceModule";
 import MultiLevelApprovalModule from "../modules/MultiLevelApprovalModule";
 import PayrollModule from "../modules/PayrollModule";
@@ -94,6 +99,7 @@ import ProductCatalogModule from "../modules/ProductCatalogModule";
 import ProductionModule from "../modules/ProductionModule";
 import ProjectsModule from "../modules/ProjectsModule";
 import PurchasingModule from "../modules/PurchasingModule";
+import QualityChecklistModule from "../modules/QualityChecklistModule";
 import QualityModule from "../modules/QualityModule";
 import ReportingModule from "../modules/ReportingModule";
 import RiskModule from "../modules/RiskModule";
@@ -156,7 +162,10 @@ type Tab =
   | "approvals"
   | "dataexport"
   | "timesheet"
-  | "cashflow";
+  | "cashflow"
+  | "loyalty"
+  | "qualitychecklist"
+  | "kpi";
 
 const ALL_MODULES = [
   "HR",
@@ -596,6 +605,21 @@ export default function OwnerDashboard({
       id: "cashflow" as Tab,
       labelKey: "modules.CashFlow",
       icon: <TrendingUp className="w-5 h-5 text-emerald-400" />,
+    },
+    {
+      id: "loyalty" as Tab,
+      labelKey: "modules.Loyalty",
+      icon: <Gift className="w-5 h-5 text-pink-400" />,
+    },
+    {
+      id: "qualitychecklist" as Tab,
+      labelKey: "modules.QualityChecklist",
+      icon: <ClipboardCheck className="w-5 h-5 text-teal-400" />,
+    },
+    {
+      id: "kpi" as Tab,
+      labelKey: "kpi.title",
+      icon: <Target className="w-5 h-5 text-yellow-400" />,
     },
   ];
 
@@ -1070,6 +1094,9 @@ export default function OwnerDashboard({
         {tab === "dataexport" && <DataExportModule />}
         {tab === "timesheet" && <TimesheetModule />}
         {tab === "cashflow" && <CashFlowForecast />}
+        {tab === "loyalty" && <LoyaltyModule />}
+        {tab === "qualitychecklist" && <QualityChecklistModule />}
+        {tab === "kpi" && <KPIModule />}
         {tab === "profile" && (
           <UserProfilePage
             user={user}

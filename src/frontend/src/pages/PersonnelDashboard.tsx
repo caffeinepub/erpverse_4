@@ -23,6 +23,7 @@ import {
   ShoppingBag,
   ShoppingCart,
   Tags,
+  Target,
   User,
   UserCheck,
   Users,
@@ -55,6 +56,7 @@ import CustomerServiceModule from "../modules/CustomerServiceModule";
 import DocumentModule from "../modules/DocumentModule";
 import HRModule from "../modules/HRModule";
 import InventoryModule from "../modules/InventoryModule";
+import KPIModule from "../modules/KPIModule";
 import MaintenanceModule from "../modules/MaintenanceModule";
 import PayrollModule from "../modules/PayrollModule";
 import PersonnelSelfServiceModule from "../modules/PersonnelSelfServiceModule";
@@ -226,6 +228,11 @@ const MODULE_CONFIG: Record<
     icon: <Clock className="w-7 h-7" />,
     color: "text-emerald-400",
     bg: "bg-emerald-500/10 border-emerald-500/20",
+  },
+  KPI: {
+    icon: <Target className="w-7 h-7" />,
+    color: "text-yellow-400",
+    bg: "bg-yellow-500/10 border-yellow-500/20",
   },
 };
 
@@ -452,6 +459,7 @@ export default function PersonnelDashboard({
           {activeModule === "Shifts" && <ShiftModule />}
           {activeModule === "Barcode" && <BarcodeModule />}
           {activeModule === "Timesheet" && <TimesheetModule />}
+          {activeModule === "KPI" && <KPIModule />}
           {activeModule === "SelfService" && (
             <PersonnelSelfServiceModule
               user={user}
@@ -488,6 +496,7 @@ export default function PersonnelDashboard({
             "Shifts",
             "Barcode",
             "Timesheet",
+            "KPI",
             "SelfService",
           ].includes(activeModule) && (
             <div className="flex items-center justify-center h-64">
