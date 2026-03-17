@@ -12,6 +12,7 @@ import {
   Factory,
   FileText,
   FolderKanban,
+  GitBranch,
   GitMerge,
   Globe,
   GraduationCap,
@@ -32,6 +33,7 @@ import {
   ShoppingCart,
   Tags,
   Trash2,
+  TrendingUp,
   User,
   UserPlus,
   Users,
@@ -45,6 +47,7 @@ import { useCallback, useEffect, useState } from "react";
 import AuditLogPanel from "../components/AuditLogPanel";
 import GlobalSearch from "../components/GlobalSearch";
 import NotificationBell from "../components/NotificationBell";
+import OrgChartPanel from "../components/OrgChartPanel";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Checkbox } from "../components/ui/checkbox";
@@ -72,6 +75,7 @@ import BarcodeModule from "../modules/BarcodeModule";
 import BudgetModule from "../modules/BudgetModule";
 import CRMModule from "../modules/CRMModule";
 import CalendarModule from "../modules/CalendarModule";
+import CashFlowForecast from "../modules/CashFlowForecast";
 import CompanyProfileModule from "../modules/CompanyProfileModule";
 import ContractModule from "../modules/ContractModule";
 import CustomerServiceModule from "../modules/CustomerServiceModule";
@@ -123,6 +127,7 @@ type Tab =
   | "profile"
   | "permissions"
   | "auditlog"
+  | "orgchart"
   | "quality"
   | "warehouse"
   | "budget"
@@ -150,7 +155,8 @@ type Tab =
   | "seriallot"
   | "approvals"
   | "dataexport"
-  | "timesheet";
+  | "timesheet"
+  | "cashflow";
 
 const ALL_MODULES = [
   "HR",
@@ -452,6 +458,11 @@ export default function OwnerDashboard({
       icon: <ClipboardList className="w-5 h-5 text-violet-400" />,
     },
     {
+      id: "orgchart" as Tab,
+      labelKey: "orgchart.title",
+      icon: <GitBranch className="w-5 h-5 text-violet-400" />,
+    },
+    {
       id: "quality" as Tab,
       labelKey: "modules.Quality",
       icon: <ShieldAlert className="w-5 h-5 text-rose-400" />,
@@ -580,6 +591,11 @@ export default function OwnerDashboard({
       id: "timesheet" as Tab,
       labelKey: "timesheet.title",
       icon: <Clock className="w-5 h-5 text-emerald-400" />,
+    },
+    {
+      id: "cashflow" as Tab,
+      labelKey: "modules.CashFlow",
+      icon: <TrendingUp className="w-5 h-5 text-emerald-400" />,
     },
   ];
 
@@ -1024,6 +1040,7 @@ export default function OwnerDashboard({
         {tab === "workflow" && <WorkflowModule />}
         {tab === "reporting" && <ReportingModule />}
         {tab === "auditlog" && <AuditLogPanel />}
+        {tab === "orgchart" && <OrgChartPanel />}
         {tab === "quality" && <QualityModule />}
         {tab === "warehouse" && <WarehouseModule />}
         {tab === "budget" && <BudgetModule />}
@@ -1052,6 +1069,7 @@ export default function OwnerDashboard({
         {tab === "approvals" && <MultiLevelApprovalModule />}
         {tab === "dataexport" && <DataExportModule />}
         {tab === "timesheet" && <TimesheetModule />}
+        {tab === "cashflow" && <CashFlowForecast />}
         {tab === "profile" && (
           <UserProfilePage
             user={user}

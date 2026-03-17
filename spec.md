@@ -1,24 +1,27 @@
 # ERPVerse
 
 ## Current State
-v50: Full Data Export/Import modülü mevcut. Sistemde v12'den beri audit log kaydı tutuluyor ancak kullanıcıya görsel bir ekranda sunulmuyor.
+v53 -- Denetim İzi (Audit Log) panel eklendi. OwnerDashboard'da 48 tab mevcut. HR personel verileri localStorage'da `erpverse_hr_${companyId}` anahtarıyla saklanıyor. Her personelin name, role, department alanları var. Tab tipi bir union type olarak tanımlanmış.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Sol menüye "Denetim İzi" (Audit Log) sekmesi eklenmesi
-- Tüm modüllerdeki değişikliklerin (oluşturma, güncelleme, silme) listelenmesi
-- Modül, eylem tipi ve tarih aralığına göre filtreleme
-- Her kayıtta: zaman damgası, kullanıcı, modül, eylem, detay
+- `OrgChartPanel` React bileşeni: şirket personelini rol hiyerarşisine göre görsel ağaç yapısında gösteren panel
+- OwnerDashboard'a `orgchart` tab'ı eklenmesi
+- Tab type'a `orgchart` eklenmesi
+- navItems'a OrgChart girişi eklenmesi
 
 ### Modify
-- OwnerDashboard: Denetim İzi sekmesi eklenmesi
+- OwnerDashboard.tsx: Tab type, navItems, render switch'e orgchart eklenmesi
 
 ### Remove
-- Yok
+- Hiçbir şey kaldırılmıyor
 
 ## Implementation Plan
-1. AuditLogModule component oluştur (filtreleme + tablo görünümü)
-2. localStorage'dan mevcut audit log verilerini oku; yoksa demo kayıtlar oluştur
-3. OwnerDashboard menüsüne sekme ekle
-4. Modül bazlı log yazma helper'ını diğer modüllerde kullan (mevcut pattern'a uygun)
+1. `OrgChartPanel.tsx` oluştur:
+   - localStorage'dan HR personel verisini oku
+   - Sahibi (Owner) en üstte, altında Yöneticiler, altında İdareciler, en altta Personel
+   - Her rol için kart: isim, departman, rol rozeti
+   - Saf CSS/Tailwind ile tree layout (svg çizgileri ile bağlantı)
+   - t() ile çevrilebilir tüm metinler
+2. OwnerDashboard.tsx'e `orgchart` tab ekle (Tab type + navItem + render)

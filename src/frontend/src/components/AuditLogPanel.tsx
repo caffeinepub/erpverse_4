@@ -22,18 +22,60 @@ const ALL_MODULES = [
   "Production",
   "Workflow",
   "Reporting",
+  "Quality",
+  "Warehouse",
+  "Budget",
+  "Assets",
+  "CustomerService",
+  "Sales",
+  "SupplyChain",
+  "Maintenance",
+  "Payroll",
+  "BI",
+  "Documents",
+  "Risk",
+  "Trade",
+  "Contracts",
+  "Tasks",
+  "Calendar",
+  "CompanyProfile",
+  "Training",
+  "ProductCatalog",
+  "Automation",
+  "PriceLists",
+  "WorkOrders",
+  "Shifts",
+  "Barcode",
+  "SerialLot",
+  "Approvals",
+  "DataExport",
+  "Timesheet",
+  "CashFlow",
 ];
 
 export default function AuditLogPanel() {
   const { t } = useLanguage();
   const { logs } = useAuditLog();
   const [filterModule, setFilterModule] = useState("all");
+  const [filterAction, setFilterAction] = useState("all");
+  const [filterUser, setFilterUser] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+
+  const uniqueActions = useMemo(() => {
+    const actions = new Set(logs.map((l) => l.action));
+    return Array.from(actions).sort();
+  }, [logs]);
 
   const filtered = useMemo(() => {
     return logs.filter((log) => {
       if (filterModule !== "all" && log.module !== filterModule) return false;
+      if (filterAction !== "all" && log.action !== filterAction) return false;
+      if (
+        filterUser &&
+        !log.userName.toLowerCase().includes(filterUser.toLowerCase())
+      )
+        return false;
       if (dateFrom) {
         const logDate = log.timestamp.slice(0, 10);
         if (logDate < dateFrom) return false;
@@ -44,7 +86,16 @@ export default function AuditLogPanel() {
       }
       return true;
     });
-  }, [logs, filterModule, dateFrom, dateTo]);
+  }, [logs, filterModule, filterAction, filterUser, dateFrom, dateTo]);
+
+  const actionColor = (action: string) => {
+    if (action === "create") return "bg-green-500/20 text-green-300";
+    if (action === "delete") return "bg-red-500/20 text-red-300";
+    if (action === "update") return "bg-blue-500/20 text-blue-300";
+    if (action === "approve") return "bg-emerald-500/20 text-emerald-300";
+    if (action === "reject") return "bg-rose-500/20 text-rose-300";
+    return "bg-slate-700 text-slate-300";
+  };
 
   return (
     <div className="p-8">
@@ -56,6 +107,9 @@ export default function AuditLogPanel() {
           <h2 className="text-2xl font-bold text-white">
             {t("auditlog.title")}
           </h2>
+          <p className="text-slate-400 text-sm">
+            {filtered.length} / {logs.length} kayıt
+          </p>
         </div>
       </div>
 
@@ -72,19 +126,49 @@ export default function AuditLogPanel() {
             >
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-slate-800 border-white/10">
+            <SelectContent className="bg-slate-800 border-white/10 max-h-60 overflow-y-auto">
               <SelectItem value="all" className="text-white">
                 {t("auditlog.allModules")}
               </SelectItem>
               {ALL_MODULES.map((m) => (
                 <SelectItem key={m} value={m} className="text-white">
-                  {t(`modules.${m}`)}
+                  {m}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         <div className="flex-1 min-w-[150px]">
+          <Label className="text-slate-400 text-xs mb-1 block">
+            İşlem Türü
+          </Label>
+          <Select value={filterAction} onValueChange={setFilterAction}>
+            <SelectTrigger className="bg-slate-800 border-white/10 text-white h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-slate-800 border-white/10">
+              <SelectItem value="all" className="text-white">
+                Tümü
+              </SelectItem>
+              {uniqueActions.map((a) => (
+                <SelectItem key={a} value={a} className="text-white">
+                  {a}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex-1 min-w-[150px]">
+          <Label className="text-slate-400 text-xs mb-1 block">Kullanıcı</Label>
+          <Input
+            type="text"
+            placeholder="Kullanıcı ara..."
+            value={filterUser}
+            onChange={(e) => setFilterUser(e.target.value)}
+            className="bg-slate-800 border-white/10 text-white h-9"
+          />
+        </div>
+        <div className="flex-1 min-w-[140px]">
           <Label className="text-slate-400 text-xs mb-1 block">
             {t("auditlog.date")} (başlangıç)
           </Label>
@@ -96,7 +180,7 @@ export default function AuditLogPanel() {
             data-ocid="auditlog.input"
           />
         </div>
-        <div className="flex-1 min-w-[150px]">
+        <div className="flex-1 min-w-[140px]">
           <Label className="text-slate-400 text-xs mb-1 block">
             {t("auditlog.date")} (bitiş)
           </Label>
@@ -160,8 +244,12 @@ export default function AuditLogPanel() {
                       {log.module}
                     </span>
                   </td>
-                  <td className="px-5 py-3 text-slate-300 text-sm">
-                    {log.action}
+                  <td className="px-5 py-3">
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${actionColor(log.action)}`}
+                    >
+                      {log.action}
+                    </span>
                   </td>
                   <td className="px-5 py-3 text-slate-400 text-xs">
                     {log.detail}
