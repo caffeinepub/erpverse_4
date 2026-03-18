@@ -87,6 +87,7 @@ import ContractModule from "../modules/ContractModule";
 import CustomerServiceModule from "../modules/CustomerServiceModule";
 import DataExportModule from "../modules/DataExportModule";
 import DocumentModule from "../modules/DocumentModule";
+import EFaturaModule from "../modules/EFaturaModule";
 import HRModule from "../modules/HRModule";
 import InventoryModule from "../modules/InventoryModule";
 import KPIModule from "../modules/KPIModule";
@@ -177,7 +178,8 @@ type Tab =
   | "bankreconciliation"
   | "physicalinventory"
   | "projectcost"
-  | "salesforecast";
+  | "salesforecast"
+  | "efatura";
 
 const ALL_MODULES = [
   "HR",
@@ -657,6 +659,11 @@ export default function OwnerDashboard({
       id: "salesforecast" as Tab,
       labelKey: "salesforecast.title",
       icon: <TrendingUp className="w-5 h-5 text-green-400" />,
+    },
+    {
+      id: "efatura" as Tab,
+      labelKey: "efatura.title",
+      icon: <FileText className="w-5 h-5 text-purple-400" />,
     },
   ];
 
@@ -1139,6 +1146,7 @@ export default function OwnerDashboard({
         {tab === "physicalinventory" && <PhysicalInventoryModule />}
         {tab === "projectcost" && <ProjectCostModule />}
         {tab === "salesforecast" && <SalesForecastModule />}
+        {tab === "efatura" && <EFaturaModule />}
         {tab === "profile" && (
           <UserProfilePage
             user={user}
