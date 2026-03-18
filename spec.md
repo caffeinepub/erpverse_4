@@ -1,30 +1,23 @@
 # ERPVerse
 
 ## Current State
-v56 build with 55+ ERP modules. Last added: Kalite Kontrol Checklist (QualityChecklistModule).
+v61 is deployed. All modules up to Physical Inventory Count (v61) are implemented. The app uses localStorage for all module data and has a large number of ERP modules in OwnerDashboard and PersonnelDashboard.
 
 ## Requested Changes (Diff)
 
 ### Add
-- KPI Hedef Yönetimi (KPI Goal Management) module
-  - KPI tanımlama: başlık, kategori (Satış/HR/Üretim/Finans/Genel), hedef değer, birim, başlangıç/bitiş tarihi
-  - KPI güncelleme: mevcut değer girişi, ilerleme yüzdesi otomatik hesaplanır
-  - Durum takibi: Aktif/Tamamlandı/Gecikmeli (otomatik bitiş tarihine göre)
-  - Departman bazlı filtreleme
-  - Progress bar ile görsel ilerleme gösterimi
-  - localStorage'a kaydedilir
-  - OwnerDashboard ve PersonnelDashboard'a eklenir
+- **Proje Maliyet Takibi (Project Cost Tracking)** module: a new module that lets users define per-project budgets, add cost entries (labor/material/overhead), auto-calculate labor cost from existing timesheet data (hours × hourly rate), and push approved costs as accounting expense entries.
 
 ### Modify
-- OwnerDashboard: Tab type + nav item + render for "kpi"
-- PersonnelDashboard: same additions
-- translations: kpi.* keys added
+- OwnerDashboard: add new `projectcost` tab and import ProjectCostModule
+- PersonnelDashboard: add new `projectcost` tab
+- LanguageContext: add translation keys for the new module in all 8 languages
 
 ### Remove
-- Nothing removed
+- Nothing
 
 ## Implementation Plan
-1. Create `src/frontend/src/modules/KPIModule.tsx`
-2. Add `kpi` tab to OwnerDashboard
-3. Add `kpi` tab to PersonnelDashboard
-4. Add translation keys
+1. Create `src/frontend/src/modules/ProjectCostModule.tsx` with: project list from localStorage, per-project budget field, cost entry form (type, description, amount, date), timesheet-based labor cost auto-calculation, budget vs actual comparison bar, export cost to accounting
+2. Update OwnerDashboard: add `projectcost` to Tab type, add nav item, render ProjectCostModule
+3. Update PersonnelDashboard: same additions
+4. Update LanguageContext: add `projectcost.*` keys for all 8 languages

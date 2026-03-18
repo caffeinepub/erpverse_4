@@ -28,6 +28,7 @@ import {
   Package,
   Percent,
   PiggyBank,
+  ScanLine,
   Settings,
   ShieldAlert,
   ShieldCheck,
@@ -37,6 +38,7 @@ import {
   Target,
   Trash2,
   TrendingUp,
+  Truck,
   User,
   UserPlus,
   Users,
@@ -74,6 +76,7 @@ import AccountingModule from "../modules/AccountingModule";
 import AssetModule from "../modules/AssetModule";
 import AutomationModule from "../modules/AutomationModule";
 import BIModule from "../modules/BIModule";
+import BankReconciliationModule from "../modules/BankReconciliationModule";
 import BarcodeModule from "../modules/BarcodeModule";
 import BudgetModule from "../modules/BudgetModule";
 import CRMModule from "../modules/CRMModule";
@@ -94,9 +97,11 @@ import PayrollModule from "../modules/PayrollModule";
 import PersonalizedDashboardWidget, {
   trackModuleAccess,
 } from "../modules/PersonalizedDashboardWidget";
+import PhysicalInventoryModule from "../modules/PhysicalInventoryModule";
 import PriceListModule from "../modules/PriceListModule";
 import ProductCatalogModule from "../modules/ProductCatalogModule";
 import ProductionModule from "../modules/ProductionModule";
+import ProjectCostModule from "../modules/ProjectCostModule";
 import ProjectsModule from "../modules/ProjectsModule";
 import PurchasingModule from "../modules/PurchasingModule";
 import QualityChecklistModule from "../modules/QualityChecklistModule";
@@ -106,6 +111,7 @@ import RiskModule from "../modules/RiskModule";
 import SalesModule from "../modules/SalesModule";
 import SerialLotModule from "../modules/SerialLotModule";
 import ShiftModule from "../modules/ShiftModule";
+import SupplyChainDeepModule from "../modules/SupplyChainDeepModule";
 import SupplyChainModule from "../modules/SupplyChainModule";
 import TaskModule from "../modules/TaskModule";
 import TimesheetModule from "../modules/TimesheetModule";
@@ -165,7 +171,11 @@ type Tab =
   | "cashflow"
   | "loyalty"
   | "qualitychecklist"
-  | "kpi";
+  | "kpi"
+  | "supplychaindeep"
+  | "bankreconciliation"
+  | "physicalinventory"
+  | "projectcost";
 
 const ALL_MODULES = [
   "HR",
@@ -620,6 +630,26 @@ export default function OwnerDashboard({
       id: "kpi" as Tab,
       labelKey: "kpi.title",
       icon: <Target className="w-5 h-5 text-yellow-400" />,
+    },
+    {
+      id: "supplychaindeep" as Tab,
+      labelKey: "supplydeep.title",
+      icon: <Truck className="w-5 h-5 text-teal-400" />,
+    },
+    {
+      id: "bankreconciliation" as Tab,
+      labelKey: "bank.title",
+      icon: <Building2 className="w-5 h-5 text-indigo-400" />,
+    },
+    {
+      id: "physicalinventory" as Tab,
+      labelKey: "physicalInventory",
+      icon: <ScanLine className="w-5 h-5 text-emerald-400" />,
+    },
+    {
+      id: "projectcost" as Tab,
+      labelKey: "projectcost.title",
+      icon: <TrendingUp className="w-5 h-5 text-violet-400" />,
     },
   ];
 
@@ -1097,6 +1127,10 @@ export default function OwnerDashboard({
         {tab === "loyalty" && <LoyaltyModule />}
         {tab === "qualitychecklist" && <QualityChecklistModule />}
         {tab === "kpi" && <KPIModule />}
+        {tab === "supplychaindeep" && <SupplyChainDeepModule />}
+        {tab === "bankreconciliation" && <BankReconciliationModule />}
+        {tab === "physicalinventory" && <PhysicalInventoryModule />}
+        {tab === "projectcost" && <ProjectCostModule />}
         {tab === "profile" && (
           <UserProfilePage
             user={user}

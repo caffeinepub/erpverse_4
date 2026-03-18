@@ -62,6 +62,7 @@ import PayrollModule from "../modules/PayrollModule";
 import PersonnelSelfServiceModule from "../modules/PersonnelSelfServiceModule";
 import ProductCatalogModule from "../modules/ProductCatalogModule";
 import ProductionModule from "../modules/ProductionModule";
+import ProjectCostModule from "../modules/ProjectCostModule";
 import ProjectsModule from "../modules/ProjectsModule";
 import PurchasingModule from "../modules/PurchasingModule";
 import QualityModule from "../modules/QualityModule";
@@ -466,6 +467,7 @@ export default function PersonnelDashboard({
               companyId={company?.id ?? ""}
             />
           )}
+          {activeModule === "ProjectCost" && <ProjectCostModule />}
           {![
             "HR",
             "Accounting",
@@ -498,6 +500,7 @@ export default function PersonnelDashboard({
             "Timesheet",
             "KPI",
             "SelfService",
+            "ProjectCost",
           ].includes(activeModule) && (
             <div className="flex items-center justify-center h-64">
               <p className="text-slate-400">{t("module.comingSoon")}</p>
