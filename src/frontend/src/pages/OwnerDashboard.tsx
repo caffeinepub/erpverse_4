@@ -108,6 +108,7 @@ import QualityChecklistModule from "../modules/QualityChecklistModule";
 import QualityModule from "../modules/QualityModule";
 import ReportingModule from "../modules/ReportingModule";
 import RiskModule from "../modules/RiskModule";
+import SalesForecastModule from "../modules/SalesForecastModule";
 import SalesModule from "../modules/SalesModule";
 import SerialLotModule from "../modules/SerialLotModule";
 import ShiftModule from "../modules/ShiftModule";
@@ -175,7 +176,8 @@ type Tab =
   | "supplychaindeep"
   | "bankreconciliation"
   | "physicalinventory"
-  | "projectcost";
+  | "projectcost"
+  | "salesforecast";
 
 const ALL_MODULES = [
   "HR",
@@ -650,6 +652,11 @@ export default function OwnerDashboard({
       id: "projectcost" as Tab,
       labelKey: "projectcost.title",
       icon: <TrendingUp className="w-5 h-5 text-violet-400" />,
+    },
+    {
+      id: "salesforecast" as Tab,
+      labelKey: "salesforecast.title",
+      icon: <TrendingUp className="w-5 h-5 text-green-400" />,
     },
   ];
 
@@ -1131,6 +1138,7 @@ export default function OwnerDashboard({
         {tab === "bankreconciliation" && <BankReconciliationModule />}
         {tab === "physicalinventory" && <PhysicalInventoryModule />}
         {tab === "projectcost" && <ProjectCostModule />}
+        {tab === "salesforecast" && <SalesForecastModule />}
         {tab === "profile" && (
           <UserProfilePage
             user={user}

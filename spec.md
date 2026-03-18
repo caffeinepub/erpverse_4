@@ -1,23 +1,22 @@
 # ERPVerse
 
 ## Current State
-v61 is deployed. All modules up to Physical Inventory Count (v61) are implemented. The app uses localStorage for all module data and has a large number of ERP modules in OwnerDashboard and PersonnelDashboard.
+v62 - Proje Maliyet Takibi eklendi. 62 modül aktif. OwnerDashboard'da tab sistemi mevcut.
 
 ## Requested Changes (Diff)
 
 ### Add
-- **Proje Maliyet Takibi (Project Cost Tracking)** module: a new module that lets users define per-project budgets, add cost entries (labor/material/overhead), auto-calculate labor cost from existing timesheet data (hours × hourly rate), and push approved costs as accounting expense entries.
+- SalesForecastModule: aylık satış hedefi girişi, CRM/Satış verilerinden gerçekleşen hesaplama, hedef-gerçekleşen karşılaştırma bar grafikleri, trend analizi
+- OwnerDashboard'a 'salesforecast' tab ve nav item
+- ALL_MODULES listesine 'SalesForecast' eklenmesi
+- Çeviri anahtarları: modules.SalesForecast, salesforecast.title vb.
 
 ### Modify
-- OwnerDashboard: add new `projectcost` tab and import ProjectCostModule
-- PersonnelDashboard: add new `projectcost` tab
-- LanguageContext: add translation keys for the new module in all 8 languages
+- OwnerDashboard.tsx: yeni tab ve import eklenmesi
 
 ### Remove
-- Nothing
+- Yok
 
 ## Implementation Plan
-1. Create `src/frontend/src/modules/ProjectCostModule.tsx` with: project list from localStorage, per-project budget field, cost entry form (type, description, amount, date), timesheet-based labor cost auto-calculation, budget vs actual comparison bar, export cost to accounting
-2. Update OwnerDashboard: add `projectcost` to Tab type, add nav item, render ProjectCostModule
-3. Update PersonnelDashboard: same additions
-4. Update LanguageContext: add `projectcost.*` keys for all 8 languages
+1. SalesForecastModule.tsx oluştur (hedef giriş formu, gerçekleşen hesaplama, karşılaştırma grafik, trend)
+2. OwnerDashboard.tsx güncelle (import, Tab type, navItems, render)
