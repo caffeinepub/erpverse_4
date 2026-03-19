@@ -1,5 +1,5 @@
 import { Handshake, KanbanSquare, Plus } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -26,7 +26,7 @@ import {
 } from "../components/ui/tabs";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
-import { useLocalStorage } from "../hooks/useLocalStorage";
+import { useActor } from "../hooks/useActor";
 
 type CustomerStatus = "lead" | "active" | "closed";
 type PipelineStage =
@@ -54,6 +54,58 @@ interface Opportunity {
   assignee: string;
   stage: PipelineStage;
   createdAt: string;
+}
+
+// Backend variant converters
+function backendStatusToString(status: {
+  lead?: null;
+  active?: null;
+  closed?: null;
+}): CustomerStatus {
+  if ("lead" in status) return "lead";
+  if ("active" in status) return "active";
+  return "closed";
+}
+
+function stringToBackendStatus(
+  s: CustomerStatus,
+): { lead: null } | { active: null } | { closed: null } {
+  if (s === "lead") return { lead: null };
+  if (s === "active") return { active: null };
+  return { closed: null };
+}
+
+function backendStageToString(stage: {
+  new_?: null;
+  contact?: null;
+  proposal?: null;
+  negotiation?: null;
+  won?: null;
+  lost?: null;
+}): PipelineStage {
+  if ("new_" in stage) return "new";
+  if ("contact" in stage) return "contact";
+  if ("proposal" in stage) return "proposal";
+  if ("negotiation" in stage) return "negotiation";
+  if ("won" in stage) return "won";
+  return "lost";
+}
+
+function stringToBackendStage(
+  s: PipelineStage,
+):
+  | { new_: null }
+  | { contact: null }
+  | { proposal: null }
+  | { negotiation: null }
+  | { won: null }
+  | { lost: null } {
+  if (s === "new") return { new_: null };
+  if (s === "contact") return { contact: null };
+  if (s === "proposal") return { proposal: null };
+  if (s === "negotiation") return { negotiation: null };
+  if (s === "won") return { won: null };
+  return { lost: null };
 }
 
 const STATUS_COLORS: Record<CustomerStatus, string> = {
@@ -98,16 +150,15 @@ const PIPELINE_STAGES: { key: PipelineStage; color: string; header: string }[] =
 
 export default function CRMModule() {
   const { t } = useLanguage();
-  const { company } = useAuth();
-  const companyId = company?.id || "default";
-  const [customers, setCustomers] = useLocalStorage<Customer[]>(
-    `erpverse_crm_${companyId}`,
-    [],
-  );
-  const [opportunities, setOpportunities] = useLocalStorage<Opportunity[]>(
-    `erp_crm_opportunities_${companyId}`,
-    [],
-  );
+  const { company, user } = useAuth();
+  const { actor } = useActor();
+  const companyId = company?.id || "";
+  const userId = user?.id || "";
+
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const [statusFilter, setStatusFilter] = useState<CustomerStatus | "all">(
     "all",
   );
@@ -130,83 +181,164 @@ export default function CRMModule() {
     stage: "new" as PipelineStage,
   });
 
+  const fetchData = useCallback(async () => {
+    if (!actor || !companyId) return;
+    try {
+      const [backendCustomers, backendOpportunities] = await Promise.all([
+        actor.getCustomers(companyId),
+        actor.getOpportunities(companyId),
+      ]);
+      setCustomers(
+        backendCustomers.map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          email: c.email,
+          phone: c.phone,
+          company: c.company,
+          status: backendStatusToString(c.status),
+        })),
+      );
+      setOpportunities(
+        backendOpportunities.map((o: any) => ({
+          id: o.id,
+          name: o.name,
+          company: o.company,
+          value: Number(o.value),
+          assignee: o.assignee,
+          stage: backendStageToString(o.stage),
+          createdAt: o.createdAt,
+        })),
+      );
+    } catch (err) {
+      console.error("CRM fetch error", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [actor, companyId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
   const filtered =
     statusFilter === "all"
       ? customers
       : customers.filter((c) => c.status === statusFilter);
 
-  const handleSave = () => {
-    if (!form.name.trim()) return;
-    setCustomers((prev) => [...prev, { id: Date.now().toString(), ...form }]);
-    setForm({ name: "", email: "", phone: "", company: "", status: "lead" });
-    setShowDialog(false);
-  };
-
-  const handleDelete = (id: string) =>
-    setCustomers((prev) => prev.filter((c) => c.id !== id));
-
-  const handleStatusChange = (
-    customerId: string,
-    newStatus: CustomerStatus,
-  ) => {
-    const customer = customers.find((c) => c.id === customerId);
-    if (!customer) return;
-    const prevStatus = customer.status;
-    setCustomers((prev) =>
-      prev.map((c) => (c.id === customerId ? { ...c, status: newStatus } : c)),
-    );
-    if (prevStatus !== "active" && newStatus === "active") {
-      const key = `erpverse_accounting_${companyId}`;
-      const existing = (() => {
-        try {
-          return JSON.parse(localStorage.getItem(key) || "[]");
-        } catch {
-          return [];
-        }
-      })();
-      const newTx = {
-        id: Date.now().toString(),
-        type: "income",
-        description: `CRM: ${customer.name}`,
-        amount: 0,
-        date: new Date().toISOString().slice(0, 10),
-        category: "CRM",
-      };
-      localStorage.setItem(key, JSON.stringify([newTx, ...existing]));
-      toast.success(t("integration.crmIncomeCreated"));
+  const handleSave = async () => {
+    if (!form.name.trim() || !actor) return;
+    try {
+      await actor.addCustomer(
+        companyId,
+        userId,
+        form.name,
+        form.email,
+        form.phone,
+        form.company,
+        stringToBackendStatus(form.status),
+      );
+      setForm({ name: "", email: "", phone: "", company: "", status: "lead" });
+      setShowDialog(false);
+      await fetchData();
+    } catch (_err) {
+      toast.error(t("common.error"));
     }
   };
 
-  const handleSaveOpp = () => {
-    if (!oppForm.name.trim()) return;
-    const opp: Opportunity = {
-      id: Date.now().toString(),
-      name: oppForm.name,
-      company: oppForm.company,
-      value: Number(oppForm.value) || 0,
-      assignee: oppForm.assignee,
-      stage: oppForm.stage,
-      createdAt: new Date().toISOString().slice(0, 10),
-    };
-    setOpportunities((prev) => [opp, ...prev]);
-    setOppForm({
-      name: "",
-      company: "",
-      value: "",
-      assignee: "",
-      stage: "new",
-    });
-    setShowOppDialog(false);
-    toast.success(t("crm.oppAdded"));
+  const handleDelete = async (id: string) => {
+    if (!actor) return;
+    try {
+      await actor.removeCustomer(companyId, userId, id);
+      await fetchData();
+    } catch (_err) {
+      toast.error(t("common.error"));
+    }
   };
 
-  const handleMoveOpp = () => {
-    if (!movingOpp) return;
-    setOpportunities((prev) =>
-      prev.map((o) => (o.id === movingOpp.id ? { ...o, stage: moveStage } : o)),
-    );
-    setMovingOpp(null);
-    toast.success(t("crm.oppMoved"));
+  const handleStatusChange = async (
+    customerId: string,
+    newStatus: CustomerStatus,
+  ) => {
+    if (!actor) return;
+    const customer = customers.find((c) => c.id === customerId);
+    if (!customer) return;
+    const prevStatus = customer.status;
+    try {
+      await actor.updateCustomerStatus(
+        companyId,
+        userId,
+        customerId,
+        stringToBackendStatus(newStatus),
+      );
+      await fetchData();
+      if (prevStatus !== "active" && newStatus === "active") {
+        const key = `erpverse_accounting_${companyId}`;
+        const existing = (() => {
+          try {
+            return JSON.parse(localStorage.getItem(key) || "[]");
+          } catch {
+            return [];
+          }
+        })();
+        const newTx = {
+          id: Date.now().toString(),
+          type: "income",
+          description: `CRM: ${customer.name}`,
+          amount: 0,
+          date: new Date().toISOString().slice(0, 10),
+          category: "CRM",
+        };
+        localStorage.setItem(key, JSON.stringify([newTx, ...existing]));
+        toast.success(t("integration.crmIncomeCreated"));
+      }
+    } catch (_err) {
+      toast.error(t("common.error"));
+    }
+  };
+
+  const handleSaveOpp = async () => {
+    if (!oppForm.name.trim() || !actor) return;
+    try {
+      await actor.addOpportunity(
+        companyId,
+        userId,
+        oppForm.name,
+        oppForm.company,
+        BigInt(Math.round(Number(oppForm.value) || 0)),
+        oppForm.assignee,
+        stringToBackendStage(oppForm.stage),
+        new Date().toISOString().slice(0, 10),
+      );
+      setOppForm({
+        name: "",
+        company: "",
+        value: "",
+        assignee: "",
+        stage: "new",
+      });
+      setShowOppDialog(false);
+      await fetchData();
+      toast.success(t("crm.oppAdded"));
+    } catch (_err) {
+      toast.error(t("common.error"));
+    }
+  };
+
+  const handleMoveOpp = async () => {
+    if (!movingOpp || !actor) return;
+    try {
+      await actor.updateOpportunityStage(
+        companyId,
+        userId,
+        movingOpp.id,
+        stringToBackendStage(moveStage),
+      );
+      setMovingOpp(null);
+      await fetchData();
+      toast.success(t("crm.oppMoved"));
+    } catch (_err) {
+      toast.error(t("common.error"));
+    }
   };
 
   const counts = {
@@ -230,234 +362,245 @@ export default function CRMModule() {
         </div>
       </div>
 
-      <Tabs defaultValue="customers">
-        <TabsList className="bg-slate-800 border border-white/10 mb-5">
-          <TabsTrigger
-            value="customers"
-            className="data-[state=active]:bg-orange-600 data-[state=active]:text-white text-slate-400"
-            data-ocid="crm.customers_tab"
-          >
-            <Handshake className="w-4 h-4 mr-2" />
-            {t("crm.title")}
-          </TabsTrigger>
-          <TabsTrigger
-            value="pipeline"
-            className="data-[state=active]:bg-orange-600 data-[state=active]:text-white text-slate-400"
-            data-ocid="crm.pipeline_tab"
-          >
-            <KanbanSquare className="w-4 h-4 mr-2" />
-            {t("crm.pipeline")}
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="customers">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex gap-2">
-              {(["all", "lead", "active", "closed"] as const).map((s) => (
-                <button
-                  type="button"
-                  key={s}
-                  onClick={() => setStatusFilter(s)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                    statusFilter === s
-                      ? "bg-orange-600 text-white"
-                      : "bg-slate-800 text-slate-400 hover:text-white"
-                  }`}
-                  data-ocid={`crm.${s}_tab`}
-                >
-                  {s === "all" ? "Tümü" : t(`crm.${s}_status`)} ({counts[s]})
-                </button>
-              ))}
-            </div>
-            <Button
-              className="bg-orange-600 hover:bg-orange-700 text-white"
-              onClick={() => setShowDialog(true)}
-              data-ocid="crm.add_button"
+      {loading ? (
+        <div
+          className="flex items-center justify-center py-20"
+          data-ocid="crm.loading_state"
+        >
+          <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : (
+        <Tabs defaultValue="customers">
+          <TabsList className="bg-slate-800 border border-white/10 mb-5">
+            <TabsTrigger
+              value="customers"
+              className="data-[state=active]:bg-orange-600 data-[state=active]:text-white text-slate-400"
+              data-ocid="crm.customers_tab"
             >
-              <Plus className="w-4 h-4 mr-2" />
-              {t("crm.addCustomer")}
-            </Button>
-          </div>
+              <Handshake className="w-4 h-4 mr-2" />
+              {t("crm.title")}
+            </TabsTrigger>
+            <TabsTrigger
+              value="pipeline"
+              className="data-[state=active]:bg-orange-600 data-[state=active]:text-white text-slate-400"
+              data-ocid="crm.pipeline_tab"
+            >
+              <KanbanSquare className="w-4 h-4 mr-2" />
+              {t("crm.pipeline")}
+            </TabsTrigger>
+          </TabsList>
 
-          <div
-            className="bg-slate-800 rounded-xl border border-white/5 overflow-hidden"
-            data-ocid="crm.table"
-          >
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-white/5">
-                  <th className="text-left text-slate-400 text-xs font-medium px-5 py-3">
-                    {t("crm.customer")}
-                  </th>
-                  <th className="text-left text-slate-400 text-xs font-medium px-5 py-3">
-                    {t("crm.email")}
-                  </th>
-                  <th className="text-left text-slate-400 text-xs font-medium px-5 py-3">
-                    {t("crm.phone")}
-                  </th>
-                  <th className="text-left text-slate-400 text-xs font-medium px-5 py-3">
-                    {t("crm.status")}
-                  </th>
-                  <th className="px-5 py-3" />
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.length === 0 ? (
-                  <tr>
-                    <td colSpan={5}>
-                      <div
-                        className="text-center py-12 text-slate-500"
-                        data-ocid="crm.empty_state"
-                      >
-                        <Handshake className="w-10 h-10 mx-auto mb-2 opacity-40" />
-                        <p className="text-sm">{t("crm.addCustomer")}</p>
-                      </div>
-                    </td>
+          <TabsContent value="customers">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex gap-2">
+                {(["all", "lead", "active", "closed"] as const).map((s) => (
+                  <button
+                    type="button"
+                    key={s}
+                    onClick={() => setStatusFilter(s)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      statusFilter === s
+                        ? "bg-orange-600 text-white"
+                        : "bg-slate-800 text-slate-400 hover:text-white"
+                    }`}
+                    data-ocid={`crm.${s}_tab`}
+                  >
+                    {s === "all" ? "Tümü" : t(`crm.${s}_status`)} ({counts[s]})
+                  </button>
+                ))}
+              </div>
+              <Button
+                className="bg-orange-600 hover:bg-orange-700 text-white"
+                onClick={() => setShowDialog(true)}
+                data-ocid="crm.add_button"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                {t("crm.addCustomer")}
+              </Button>
+            </div>
+
+            <div
+              className="bg-slate-800 rounded-xl border border-white/5 overflow-hidden"
+              data-ocid="crm.table"
+            >
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-white/5">
+                    <th className="text-left text-slate-400 text-xs font-medium px-5 py-3">
+                      {t("crm.customer")}
+                    </th>
+                    <th className="text-left text-slate-400 text-xs font-medium px-5 py-3">
+                      {t("crm.email")}
+                    </th>
+                    <th className="text-left text-slate-400 text-xs font-medium px-5 py-3">
+                      {t("crm.phone")}
+                    </th>
+                    <th className="text-left text-slate-400 text-xs font-medium px-5 py-3">
+                      {t("crm.status")}
+                    </th>
+                    <th className="px-5 py-3" />
                   </tr>
-                ) : (
-                  filtered.map((c, i) => (
-                    <tr
-                      key={c.id}
-                      className="border-b border-white/5 last:border-0 hover:bg-white/2"
-                      data-ocid={`crm.row.${i + 1}`}
-                    >
-                      <td className="px-5 py-3">
-                        <p className="text-white font-medium text-sm">
-                          {c.name}
-                        </p>
-                        <p className="text-xs text-slate-500">{c.company}</p>
-                      </td>
-                      <td className="px-5 py-3 text-slate-300 text-sm">
-                        {c.email}
-                      </td>
-                      <td className="px-5 py-3 text-slate-300 text-sm">
-                        {c.phone}
-                      </td>
-                      <td className="px-5 py-3">
-                        <Select
-                          value={c.status}
-                          onValueChange={(v) =>
-                            handleStatusChange(c.id, v as CustomerStatus)
-                          }
+                </thead>
+                <tbody>
+                  {filtered.length === 0 ? (
+                    <tr>
+                      <td colSpan={5}>
+                        <div
+                          className="text-center py-12 text-slate-500"
+                          data-ocid="crm.empty_state"
                         >
-                          <SelectTrigger
-                            className={`h-7 text-xs border rounded px-2 w-28 ${STATUS_COLORS[c.status]} border-current bg-transparent`}
-                            data-ocid={`crm.status_select.${i + 1}`}
-                          >
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="bg-slate-800 border-white/10">
-                            <SelectItem
-                              value="lead"
-                              className="text-white text-xs"
-                            >
-                              {t("crm.lead_status")}
-                            </SelectItem>
-                            <SelectItem
-                              value="active"
-                              className="text-white text-xs"
-                            >
-                              {t("crm.active_status")}
-                            </SelectItem>
-                            <SelectItem
-                              value="closed"
-                              className="text-white text-xs"
-                            >
-                              {t("crm.closed_status")}
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </td>
-                      <td className="px-5 py-3 text-right">
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(c.id)}
-                          className="text-xs text-slate-400 hover:text-red-400 transition-colors"
-                          data-ocid={`crm.delete_button.${i + 1}`}
-                        >
-                          ✕
-                        </button>
+                          <Handshake className="w-10 h-10 mx-auto mb-2 opacity-40" />
+                          <p className="text-sm">{t("crm.addCustomer")}</p>
+                        </div>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="pipeline">
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-slate-400 text-sm">
-              {opportunities.length} {t("crm.opportunity").toLowerCase()}
-            </p>
-            <Button
-              className="bg-orange-600 hover:bg-orange-700 text-white"
-              onClick={() => setShowOppDialog(true)}
-              data-ocid="crm.opp.open_modal_button"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              {t("crm.addOpportunity")}
-            </Button>
-          </div>
-          <div className="flex gap-3 overflow-x-auto pb-3">
-            {PIPELINE_STAGES.map((stage) => {
-              const stageOpps = opportunities.filter(
-                (o) => o.stage === stage.key,
-              );
-              const totalValue = stageOpps.reduce((s, o) => s + o.value, 0);
-              return (
-                <div
-                  key={stage.key}
-                  className={`flex-shrink-0 w-56 rounded-xl border ${stage.color} flex flex-col`}
-                  data-ocid={`crm.pipeline.${stage.key}_panel`}
-                >
-                  <div className={`rounded-t-xl px-3 py-2 ${stage.header}`}>
-                    <p className="text-white text-xs font-semibold">
-                      {t(`crm.stage_${stage.key}`)}
-                    </p>
-                    <p className="text-white/70 text-xs">
-                      {stageOpps.length} · ₺{totalValue.toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="p-2 flex flex-col gap-2 flex-1 min-h-24 max-h-96 overflow-y-auto">
-                    {stageOpps.length === 0 && (
-                      <p className="text-slate-500 text-xs text-center py-4">
-                        {t("crm.noOpps")}
-                      </p>
-                    )}
-                    {stageOpps.map((opp, i) => (
-                      <button
-                        type="button"
-                        key={opp.id}
-                        onClick={() => {
-                          setMovingOpp(opp);
-                          setMoveStage(opp.stage);
-                        }}
-                        className="text-left w-full bg-slate-800 hover:bg-slate-700 rounded-lg p-2.5 border border-white/5 transition-colors"
-                        data-ocid={`crm.opp.card.${i + 1}`}
+                  ) : (
+                    filtered.map((c, i) => (
+                      <tr
+                        key={c.id}
+                        className="border-b border-white/5 last:border-0 hover:bg-white/2"
+                        data-ocid={`crm.row.${i + 1}`}
                       >
-                        <p className="text-white text-xs font-medium leading-tight mb-0.5">
-                          {opp.name}
-                        </p>
-                        <p className="text-slate-400 text-xs">{opp.company}</p>
-                        <p className="text-emerald-400 text-xs font-semibold mt-1">
-                          ₺{opp.value.toLocaleString()}
-                        </p>
-                        {opp.assignee && (
-                          <p className="text-slate-500 text-xs mt-0.5">
-                            👤 {opp.assignee}
+                        <td className="px-5 py-3">
+                          <p className="text-white font-medium text-sm">
+                            {c.name}
                           </p>
-                        )}
-                      </button>
-                    ))}
+                          <p className="text-xs text-slate-500">{c.company}</p>
+                        </td>
+                        <td className="px-5 py-3 text-slate-300 text-sm">
+                          {c.email}
+                        </td>
+                        <td className="px-5 py-3 text-slate-300 text-sm">
+                          {c.phone}
+                        </td>
+                        <td className="px-5 py-3">
+                          <Select
+                            value={c.status}
+                            onValueChange={(v) =>
+                              handleStatusChange(c.id, v as CustomerStatus)
+                            }
+                          >
+                            <SelectTrigger
+                              className={`h-7 text-xs border rounded px-2 w-28 ${STATUS_COLORS[c.status]} border-current bg-transparent`}
+                              data-ocid={`crm.status_select.${i + 1}`}
+                            >
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-slate-800 border-white/10">
+                              <SelectItem
+                                value="lead"
+                                className="text-white text-xs"
+                              >
+                                {t("crm.lead_status")}
+                              </SelectItem>
+                              <SelectItem
+                                value="active"
+                                className="text-white text-xs"
+                              >
+                                {t("crm.active_status")}
+                              </SelectItem>
+                              <SelectItem
+                                value="closed"
+                                className="text-white text-xs"
+                              >
+                                {t("crm.closed_status")}
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="px-5 py-3 text-right">
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(c.id)}
+                            className="text-xs text-slate-400 hover:text-red-400 transition-colors"
+                            data-ocid={`crm.delete_button.${i + 1}`}
+                          >
+                            ✕
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="pipeline">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-slate-400 text-sm">
+                {opportunities.length} {t("crm.opportunity").toLowerCase()}
+              </p>
+              <Button
+                className="bg-orange-600 hover:bg-orange-700 text-white"
+                onClick={() => setShowOppDialog(true)}
+                data-ocid="crm.opp.open_modal_button"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                {t("crm.addOpportunity")}
+              </Button>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-3">
+              {PIPELINE_STAGES.map((stage) => {
+                const stageOpps = opportunities.filter(
+                  (o) => o.stage === stage.key,
+                );
+                const totalValue = stageOpps.reduce((s, o) => s + o.value, 0);
+                return (
+                  <div
+                    key={stage.key}
+                    className={`flex-shrink-0 w-56 rounded-xl border ${stage.color} flex flex-col`}
+                    data-ocid={`crm.pipeline.${stage.key}_panel`}
+                  >
+                    <div className={`rounded-t-xl px-3 py-2 ${stage.header}`}>
+                      <p className="text-white text-xs font-semibold">
+                        {t(`crm.stage_${stage.key}`)}
+                      </p>
+                      <p className="text-white/70 text-xs">
+                        {stageOpps.length} · ₺{totalValue.toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="p-2 flex flex-col gap-2 flex-1 min-h-24 max-h-96 overflow-y-auto">
+                      {stageOpps.length === 0 && (
+                        <p className="text-slate-500 text-xs text-center py-4">
+                          {t("crm.noOpps")}
+                        </p>
+                      )}
+                      {stageOpps.map((opp, i) => (
+                        <button
+                          type="button"
+                          key={opp.id}
+                          onClick={() => {
+                            setMovingOpp(opp);
+                            setMoveStage(opp.stage);
+                          }}
+                          className="text-left w-full bg-slate-800 hover:bg-slate-700 rounded-lg p-2.5 border border-white/5 transition-colors"
+                          data-ocid={`crm.opp.card.${i + 1}`}
+                        >
+                          <p className="text-white text-xs font-medium leading-tight mb-0.5">
+                            {opp.name}
+                          </p>
+                          <p className="text-slate-400 text-xs">
+                            {opp.company}
+                          </p>
+                          <p className="text-emerald-400 text-xs font-semibold mt-1">
+                            ₺{opp.value.toLocaleString()}
+                          </p>
+                          {opp.assignee && (
+                            <p className="text-slate-500 text-xs mt-0.5">
+                              👤 {opp.assignee}
+                            </p>
+                          )}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        </TabsContent>
-      </Tabs>
+                );
+              })}
+            </div>
+          </TabsContent>
+        </Tabs>
+      )}
 
       {/* Customer Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>

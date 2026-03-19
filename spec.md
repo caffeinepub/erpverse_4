@@ -1,29 +1,27 @@
-# ERPVerse
+# ERPVerse v72 – İşe Alım Süreci (Recruitment)
 
 ## Current State
-v63 with 60+ ERP modules. OwnerDashboard has a Tab union type and renders modules by tab key. LanguageContext has TR/EN (and 6 more) translation keys. Modules are added as standalone React components in src/frontend/src/modules/.
+ERPVerse v71 has Expense Management (ExpenseModule) as the latest addition. OwnerDashboard has ~1312 lines and supports ~50+ module tabs. The backend stores HR employees, CRM customers, and opportunities. Other modules use localStorage.
 
 ## Requested Changes (Diff)
 
 ### Add
-- **EFaturaModule** (src/frontend/src/modules/EFaturaModule.tsx): E-Fatura / E-Arşiv module
-  - Two tabs: E-Fatura and E-Arşiv
-  - Create electronic invoices with GİB-compatible fields: fatura no (auto-generated UBL format: EF-YYYYMMDD-XXXX), alıcı VKN/TCKN, alıcı unvan, fatura tarihi, vade tarihi, kalemler (ürün, miktar, birim fiyat, KDV oranı), notlar
-  - Invoice list with status: Taslak, Gönderildi, İptal
-  - "GİB Formatında İndir" button (downloads JSON representation)
-  - E-Arşiv tab: same structure for archive invoices (non-EDI invoices stored electronically)
-  - Data persisted in localStorage
-- Translation keys for efatura module in TR and EN
-- "efatura" tab added to OwnerDashboard Tab type, modules list, and render section
+- `RecruitmentModule.tsx` – New module for full recruitment lifecycle:
+  - **Pozisyon Yönetimi (Job Positions)**: Create open positions with title, department, required skills, description, status (Açık/Kapalı/Beklemede)
+  - **Aday Takibi (Candidate Tracking)**: Add candidates to positions with name, email, phone, application date, CV notes
+  - **Mülakat Yönetimi (Interview Management)**: Schedule interviews for candidates, set date/time, interviewer, result (Bekliyor/Geçti/Kaldı)
+  - **Kanban/Status view**: Candidates move through stages: Başvurdu → İnceleniyor → Mülakat → Teklif → İşe Alındı / Reddedildi
+  - **Özet kartları**: Total positions, open positions, total candidates, hired count
+- Add "recruitment" tab to OwnerDashboard tab list and import RecruitmentModule
+- Add translation keys for recruitment module in all 8 languages
 
 ### Modify
-- OwnerDashboard.tsx: add Tab "efatura", import EFaturaModule, add to modules list with icon, add render case
-- LanguageContext.tsx: add efatura translation keys for TR and EN
+- `OwnerDashboard.tsx`: Add "recruitment" to Tab type, add tab entry in tabs array under HR section, add render condition for RecruitmentModule
 
 ### Remove
-- Nothing
+- Nothing removed
 
 ## Implementation Plan
-1. Create EFaturaModule.tsx with full functionality
-2. Add efatura translation keys to LanguageContext (TR + EN sections)
-3. Update OwnerDashboard: Tab type, import, modules list entry, render
+1. Create `src/frontend/src/modules/RecruitmentModule.tsx` with full recruitment UI using localStorage for data persistence
+2. Add recruitment tab import and render to OwnerDashboard.tsx
+3. Add translation keys to LanguageContext or translations file

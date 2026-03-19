@@ -42,6 +42,61 @@ export const idlFactory: IDL.InterfaceFactory = ({ IDL }) => {
     companyName: IDL.Text,
   });
 
+  const EmployeeStatus = IDL.Variant({
+    active: IDL.Null,
+    onLeave: IDL.Null,
+    terminated: IDL.Null,
+  });
+
+  const Employee = IDL.Record({
+    id: IDL.Text,
+    companyId: IDL.Text,
+    name: IDL.Text,
+    position: IDL.Text,
+    department: IDL.Text,
+    status: EmployeeStatus,
+    email: IDL.Text,
+    salary: IDL.Nat,
+    createdAt: IDL.Int,
+  });
+
+  const CustomerStatus = IDL.Variant({
+    lead: IDL.Null,
+    active: IDL.Null,
+    closed: IDL.Null,
+  });
+
+  const Customer = IDL.Record({
+    id: IDL.Text,
+    companyId: IDL.Text,
+    name: IDL.Text,
+    email: IDL.Text,
+    phone: IDL.Text,
+    company: IDL.Text,
+    status: CustomerStatus,
+    createdAt: IDL.Int,
+  });
+
+  const PipelineStage = IDL.Variant({
+    new_: IDL.Null,
+    contact: IDL.Null,
+    proposal: IDL.Null,
+    negotiation: IDL.Null,
+    won: IDL.Null,
+    lost: IDL.Null,
+  });
+
+  const Opportunity = IDL.Record({
+    id: IDL.Text,
+    companyId: IDL.Text,
+    name: IDL.Text,
+    company: IDL.Text,
+    value: IDL.Nat,
+    assignee: IDL.Text,
+    stage: PipelineStage,
+    createdAt: IDL.Text,
+  });
+
   return IDL.Service({
     _initializeAccessControlWithSecret: IDL.Func([IDL.Text], [], []),
     registerUser: IDL.Func([IDL.Text], [IDL.Opt(UserProfile)], []),
@@ -94,5 +149,71 @@ export const idlFactory: IDL.InterfaceFactory = ({ IDL }) => {
       [IDL.Opt(UserProfile)],
       ["query"],
     ),
+    // HR Employee API
+    addEmployee: IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Nat],
+      [IDL.Opt(Employee)],
+      [],
+    ),
+    updateEmployee: IDL.Func(
+      [
+        IDL.Text,
+        IDL.Text,
+        IDL.Text,
+        IDL.Text,
+        IDL.Text,
+        IDL.Text,
+        EmployeeStatus,
+        IDL.Text,
+        IDL.Nat,
+      ],
+      [IDL.Bool],
+      [],
+    ),
+    removeEmployee: IDL.Func([IDL.Text, IDL.Text, IDL.Text], [IDL.Bool], []),
+    getEmployees: IDL.Func([IDL.Text], [IDL.Vec(Employee)], ["query"]),
+    // CRM Customer API
+    addCustomer: IDL.Func(
+      [
+        IDL.Text,
+        IDL.Text,
+        IDL.Text,
+        IDL.Text,
+        IDL.Text,
+        IDL.Text,
+        CustomerStatus,
+      ],
+      [IDL.Opt(Customer)],
+      [],
+    ),
+    updateCustomerStatus: IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Text, CustomerStatus],
+      [IDL.Bool],
+      [],
+    ),
+    removeCustomer: IDL.Func([IDL.Text, IDL.Text, IDL.Text], [IDL.Bool], []),
+    getCustomers: IDL.Func([IDL.Text], [IDL.Vec(Customer)], ["query"]),
+    // CRM Opportunity API
+    addOpportunity: IDL.Func(
+      [
+        IDL.Text,
+        IDL.Text,
+        IDL.Text,
+        IDL.Text,
+        IDL.Nat,
+        IDL.Text,
+        PipelineStage,
+        IDL.Text,
+      ],
+      [IDL.Opt(Opportunity)],
+      [],
+    ),
+    updateOpportunityStage: IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Text, PipelineStage],
+      [IDL.Bool],
+      [],
+    ),
+    removeOpportunity: IDL.Func([IDL.Text, IDL.Text, IDL.Text], [IDL.Bool], []),
+    getOpportunities: IDL.Func([IDL.Text], [IDL.Vec(Opportunity)], ["query"]),
   });
 };

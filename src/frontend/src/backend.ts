@@ -43,6 +43,58 @@ export interface DashboardSummary {
   companyName: string;
 }
 
+export type EmployeeStatus =
+  | { active: null }
+  | { onLeave: null }
+  | { terminated: null };
+
+export interface BackendEmployee {
+  id: string;
+  companyId: string;
+  name: string;
+  position: string;
+  department: string;
+  status: EmployeeStatus;
+  email: string;
+  salary: bigint;
+  createdAt: bigint;
+}
+
+export type CustomerStatus =
+  | { lead: null }
+  | { active: null }
+  | { closed: null };
+
+export interface BackendCustomer {
+  id: string;
+  companyId: string;
+  name: string;
+  email: string;
+  phone: string;
+  company: string;
+  status: CustomerStatus;
+  createdAt: bigint;
+}
+
+export type PipelineStage =
+  | { new_: null }
+  | { contact: null }
+  | { proposal: null }
+  | { negotiation: null }
+  | { won: null }
+  | { lost: null };
+
+export interface BackendOpportunity {
+  id: string;
+  companyId: string;
+  name: string;
+  company: string;
+  value: bigint;
+  assignee: string;
+  stage: PipelineStage;
+  createdAt: string;
+}
+
 export interface backendInterface {
   _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
   registerUser(displayName: string): Promise<[] | [UserProfile]>;
@@ -85,6 +137,78 @@ export interface backendInterface {
     companyId: string
   ): Promise<[] | [DashboardSummary]>;
   getUserByPersonnelCode(code: string): Promise<[] | [UserProfile]>;
+  // HR Employee API
+  addEmployee(
+    companyId: string,
+    requesterId: string,
+    name: string,
+    position: string,
+    department: string,
+    email: string,
+    salary: bigint
+  ): Promise<[] | [BackendEmployee]>;
+  updateEmployee(
+    companyId: string,
+    requesterId: string,
+    employeeId: string,
+    name: string,
+    position: string,
+    department: string,
+    status: EmployeeStatus,
+    email: string,
+    salary: bigint
+  ): Promise<boolean>;
+  removeEmployee(
+    companyId: string,
+    requesterId: string,
+    employeeId: string
+  ): Promise<boolean>;
+  getEmployees(companyId: string): Promise<BackendEmployee[]>;
+  // CRM Customer API
+  addCustomer(
+    companyId: string,
+    requesterId: string,
+    name: string,
+    email: string,
+    phone: string,
+    company: string,
+    status: CustomerStatus
+  ): Promise<[] | [BackendCustomer]>;
+  updateCustomerStatus(
+    companyId: string,
+    requesterId: string,
+    customerId: string,
+    status: CustomerStatus
+  ): Promise<boolean>;
+  removeCustomer(
+    companyId: string,
+    requesterId: string,
+    customerId: string
+  ): Promise<boolean>;
+  getCustomers(companyId: string): Promise<BackendCustomer[]>;
+  // CRM Opportunity API
+  addOpportunity(
+    companyId: string,
+    requesterId: string,
+    name: string,
+    company: string,
+    value: bigint,
+    assignee: string,
+    stage: PipelineStage,
+    createdAt: string
+  ): Promise<[] | [BackendOpportunity]>;
+  updateOpportunityStage(
+    companyId: string,
+    requesterId: string,
+    opportunityId: string,
+    stage: PipelineStage
+  ): Promise<boolean>;
+  removeOpportunity(
+    companyId: string,
+    requesterId: string,
+    opportunityId: string
+  ): Promise<boolean>;
+  getOpportunities(companyId: string): Promise<BackendOpportunity[]>;
 }
 
 export class ExternalBlob {

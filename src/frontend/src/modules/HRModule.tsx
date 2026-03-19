@@ -6,8 +6,12 @@ import {
   TrendingUp,
   Users2,
 } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import type {
+  BackendEmployee,
+  EmployeeStatus as BackendEmployeeStatus,
+} from "../backend";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import {
@@ -36,6 +40,7 @@ import { useAuditLog } from "../contexts/AuditLogContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useNotifications } from "../contexts/NotificationContext";
+import { useActor } from "../hooks/useActor";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 
 type EmployeeStatus = "active" | "onLeave" | "terminated";
@@ -48,6 +53,27 @@ interface Employee {
   status: EmployeeStatus;
   email: string;
   salary?: number;
+}
+
+function fromBackendEmployee(e: BackendEmployee): Employee {
+  let status: EmployeeStatus = "active";
+  if ("onLeave" in e.status) status = "onLeave";
+  else if ("terminated" in e.status) status = "terminated";
+  return {
+    id: e.id,
+    name: e.name,
+    position: e.position,
+    department: e.department,
+    status,
+    email: e.email,
+    salary: Number(e.salary),
+  };
+}
+
+function toBackendStatus(s: EmployeeStatus): BackendEmployeeStatus {
+  if (s === "onLeave") return { onLeave: null };
+  if (s === "terminated") return { terminated: null };
+  return { active: null };
 }
 
 interface LeaveRequest {
@@ -1231,10 +1257,25 @@ export default function HRModule() {
       (r) => "CompanyOwner" in r || "CompanyManager" in r,
     ) ?? false;
 
-  const [employees, setEmployees] = useLocalStorage<Employee[]>(
-    `erpverse_hr_${companyId}`,
-    [],
-  );
+  const { actor: backend } = useActor();
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loadingEmployees, setLoadingEmployees] = useState(true);
+
+  const refreshEmployees = useCallback(async () => {
+    if (!backend) return;
+    try {
+      const list = await backend.getEmployees(companyId);
+      setEmployees(list.map(fromBackendEmployee));
+    } catch (e) {
+      console.error("Failed to load employees", e);
+    } finally {
+      setLoadingEmployees(false);
+    }
+  }, [companyId, backend]);
+
+  useEffect(() => {
+    refreshEmployees();
+  }, [refreshEmployees]);
   const [leaveRequests, setLeaveRequests] = useLocalStorage<LeaveRequest[]>(
     `erpverse_leave_requests_${companyId}`,
     [],
@@ -1312,55 +1353,69 @@ export default function HRModule() {
     setShowDialog(true);
   };
 
-  const handleSave = () => {
-    if (!form.name.trim()) return;
+  const handleSave = async () => {
+    if (!form.name.trim() || !backend) return;
     const salary = Number(form.salary) || 0;
+    const userId = membership?.userId || "";
     if (editId) {
-      setEmployees((prev) =>
-        prev.map((e) => (e.id === editId ? { ...e, ...form, salary } : e)),
+      await backend.updateEmployee(
+        companyId,
+        userId,
+        editId,
+        form.name,
+        form.position,
+        form.department,
+        toBackendStatus(form.status),
+        form.email,
+        BigInt(salary),
       );
       addLog({
         action: `${t("hr.employee")} ${t("common.save")}`,
         module: "HR",
         detail: form.name,
       });
+      await refreshEmployees();
     } else {
-      const newEmp: Employee = {
-        id: Date.now().toString(),
-        name: form.name,
-        position: form.position,
-        department: form.department,
-        status: form.status,
-        email: form.email,
-        salary,
-      };
-      setEmployees((prev) => [...prev, newEmp]);
-      addLog({
-        action: t("hr.addEmployee"),
-        module: "HR",
-        detail: form.name,
-      });
-      if (salary > 0) {
-        const key = `erpverse_accounting_${companyId}`;
-        const existing = JSON.parse(localStorage.getItem(key) || "[]");
-        const entry = {
-          id: (Date.now() + 1).toString(),
-          type: "expense",
-          description: `${form.name} - ${t("integration.salaryExpenseDesc")}`,
-          amount: salary,
-          date: new Date().toISOString().slice(0, 10),
-          category: t("integration.salaryCategory"),
-        };
-        localStorage.setItem(key, JSON.stringify([...existing, entry]));
-        toast.success(t("integration.salaryAdded"));
+      const result = await backend.addEmployee(
+        companyId,
+        userId,
+        form.name,
+        form.position,
+        form.department,
+        form.email,
+        BigInt(salary),
+      );
+      if (result[0]) {
+        addLog({
+          action: t("hr.addEmployee"),
+          module: "HR",
+          detail: form.name,
+        });
+        if (salary > 0) {
+          const key = `erpverse_accounting_${companyId}`;
+          const existing = JSON.parse(localStorage.getItem(key) || "[]");
+          const entry = {
+            id: (Date.now() + 1).toString(),
+            type: "expense",
+            description: `${form.name} - ${t("integration.salaryExpenseDesc")}`,
+            amount: salary,
+            date: new Date().toISOString().slice(0, 10),
+            category: t("integration.salaryCategory"),
+          };
+          localStorage.setItem(key, JSON.stringify([...existing, entry]));
+          toast.success(t("integration.salaryAdded"));
+        }
+        await refreshEmployees();
       }
     }
     setShowDialog(false);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
+    if (!backend) return;
     const emp = employees.find((e) => e.id === id);
-    setEmployees((prev) => prev.filter((e) => e.id !== id));
+    const userId = membership?.userId || "";
+    await backend.removeEmployee(companyId, userId, id);
     if (emp) {
       addLog({
         action: t("personnel.remove"),
@@ -1368,6 +1423,7 @@ export default function HRModule() {
         detail: emp.name,
       });
     }
+    await refreshEmployees();
   };
 
   const handleAddLeave = () => {
@@ -1572,7 +1628,19 @@ export default function HRModule() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.length === 0 ? (
+                {loadingEmployees ? (
+                  <tr>
+                    <td colSpan={5}>
+                      <div
+                        className="text-center py-12 text-slate-500"
+                        data-ocid="hr.loading_state"
+                      >
+                        <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                        <p className="text-sm">{t("common.loading")}</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filtered.length === 0 ? (
                   <tr>
                     <td colSpan={5}>
                       <div

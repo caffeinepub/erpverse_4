@@ -1,4 +1,6 @@
 import {
+  ArrowLeftRight,
+  BarChart2,
   BarChart3,
   Barcode,
   Building,
@@ -28,6 +30,7 @@ import {
   Package,
   Percent,
   PiggyBank,
+  Receipt,
   ScanLine,
   Settings,
   ShieldAlert,
@@ -88,6 +91,8 @@ import CustomerServiceModule from "../modules/CustomerServiceModule";
 import DataExportModule from "../modules/DataExportModule";
 import DocumentModule from "../modules/DocumentModule";
 import EFaturaModule from "../modules/EFaturaModule";
+import ExpenseModule from "../modules/ExpenseModule";
+import FinancialStatementsModule from "../modules/FinancialStatementsModule";
 import HRModule from "../modules/HRModule";
 import InventoryModule from "../modules/InventoryModule";
 import KPIModule from "../modules/KPIModule";
@@ -95,6 +100,7 @@ import LoyaltyModule from "../modules/LoyaltyModule";
 import MaintenanceModule from "../modules/MaintenanceModule";
 import MultiLevelApprovalModule from "../modules/MultiLevelApprovalModule";
 import PayrollModule from "../modules/PayrollModule";
+import PeriodClosingModule from "../modules/PeriodClosingModule";
 import PersonalizedDashboardWidget, {
   trackModuleAccess,
 } from "../modules/PersonalizedDashboardWidget";
@@ -107,6 +113,7 @@ import ProjectsModule from "../modules/ProjectsModule";
 import PurchasingModule from "../modules/PurchasingModule";
 import QualityChecklistModule from "../modules/QualityChecklistModule";
 import QualityModule from "../modules/QualityModule";
+import RecruitmentModule from "../modules/RecruitmentModule";
 import ReportingModule from "../modules/ReportingModule";
 import RiskModule from "../modules/RiskModule";
 import SalesForecastModule from "../modules/SalesForecastModule";
@@ -120,6 +127,7 @@ import TimesheetModule from "../modules/TimesheetModule";
 import TradeModule from "../modules/TradeModule";
 import TrainingModule from "../modules/TrainingModule";
 import WarehouseModule from "../modules/WarehouseModule";
+import WarehouseTransferModule from "../modules/WarehouseTransferModule";
 import WorkOrderModule from "../modules/WorkOrderModule";
 import WorkflowModule from "../modules/WorkflowModule";
 import UserProfilePage from "./UserProfilePage";
@@ -179,7 +187,12 @@ type Tab =
   | "physicalinventory"
   | "projectcost"
   | "salesforecast"
-  | "efatura";
+  | "efatura"
+  | "financialstatements"
+  | "periodclosing"
+  | "warehousetransfer"
+  | "expense"
+  | "recruitment";
 
 const ALL_MODULES = [
   "HR",
@@ -213,6 +226,8 @@ const ALL_MODULES = [
   "Automation",
   "PriceLists",
   "Shifts",
+  "WarehouseTransfer",
+  "Expense",
 ];
 
 const ROLES = [
@@ -664,6 +679,31 @@ export default function OwnerDashboard({
       id: "efatura" as Tab,
       labelKey: "efatura.title",
       icon: <FileText className="w-5 h-5 text-purple-400" />,
+    },
+    {
+      id: "financialstatements" as Tab,
+      labelKey: "financialStatements",
+      icon: <BarChart2 className="w-5 h-5 text-emerald-400" />,
+    },
+    {
+      id: "periodclosing" as Tab,
+      labelKey: "periodclosing.title",
+      icon: <BarChart2 className="w-5 h-5 text-orange-400" />,
+    },
+    {
+      id: "warehousetransfer" as Tab,
+      labelKey: "warehouseTransfer.title",
+      icon: <ArrowLeftRight className="w-5 h-5 text-cyan-400" />,
+    },
+    {
+      id: "expense" as Tab,
+      labelKey: "expense.title",
+      icon: <Receipt className="w-5 h-5 text-orange-400" />,
+    },
+    {
+      id: "recruitment" as Tab,
+      labelKey: "recruitment.title",
+      icon: <UserPlus className="w-5 h-5 text-teal-400" />,
     },
   ];
 
@@ -1147,6 +1187,15 @@ export default function OwnerDashboard({
         {tab === "projectcost" && <ProjectCostModule />}
         {tab === "salesforecast" && <SalesForecastModule />}
         {tab === "efatura" && <EFaturaModule />}
+        {tab === "financialstatements" && (
+          <FinancialStatementsModule companyId={company.id} t={t} />
+        )}
+        {tab === "periodclosing" && (
+          <PeriodClosingModule companyId={company.id} t={t} />
+        )}
+        {tab === "warehousetransfer" && <WarehouseTransferModule />}
+        {tab === "expense" && <ExpenseModule mode="manager" />}
+        {tab === "recruitment" && <RecruitmentModule />}
         {tab === "profile" && (
           <UserProfilePage
             user={user}

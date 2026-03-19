@@ -53,10 +53,68 @@ actor ERPVerse {
     companyName : Text;
   };
 
+  type EmployeeStatus = {
+    #active;
+    #onLeave;
+    #terminated;
+  };
+
+  type Employee = {
+    id : Text;
+    companyId : CompanyId;
+    name : Text;
+    position : Text;
+    department : Text;
+    status : EmployeeStatus;
+    email : Text;
+    salary : Nat;
+    createdAt : Int;
+  };
+
+  type CustomerStatus = {
+    #lead;
+    #active;
+    #closed;
+  };
+
+  type Customer = {
+    id : Text;
+    companyId : CompanyId;
+    name : Text;
+    email : Text;
+    phone : Text;
+    company : Text;
+    status : CustomerStatus;
+    createdAt : Int;
+  };
+
+  type PipelineStage = {
+    #new_;
+    #contact;
+    #proposal;
+    #negotiation;
+    #won;
+    #lost;
+  };
+
+  type Opportunity = {
+    id : Text;
+    companyId : CompanyId;
+    name : Text;
+    company : Text;
+    value : Nat;
+    assignee : Text;
+    stage : PipelineStage;
+    createdAt : Text;
+  };
+
   // ─── State
 
   var _nextUserId : Nat = 0;
   var _nextCompanyId : Nat = 0;
+  var _nextEmployeeId : Nat = 0;
+  var _nextCustomerId : Nat = 0;
+  var _nextOpportunityId : Nat = 0;
   var _counter : Int = 0;
 
   let _usersByLoginCode = Map.empty<Text, UserProfile>();
@@ -66,6 +124,12 @@ actor ERPVerse {
   let _memberships = Map.empty<Text, CompanyMembership>();
   let _userCompanies = Map.empty<UserId, [CompanyId]>();
   let _companyMembers = Map.empty<CompanyId, [UserId]>();
+  let _employeesById = Map.empty<Text, Employee>();
+  let _companyEmployees = Map.empty<CompanyId, [Text]>();
+  let _customersById = Map.empty<Text, Customer>();
+  let _companyCustomers = Map.empty<CompanyId, [Text]>();
+  let _opportunitiesById = Map.empty<Text, Opportunity>();
+  let _companyOpportunities = Map.empty<CompanyId, [Text]>();
 
   // ─── Helpers
 
@@ -107,6 +171,21 @@ actor ERPVerse {
     "CMP" # _nextCompanyId.toText()
   };
 
+  func _genEmployeeId() : Text {
+    _nextEmployeeId += 1;
+    "EMP" # _nextEmployeeId.toText()
+  };
+
+  func _genCustomerId() : Text {
+    _nextCustomerId += 1;
+    "CUS" # _nextCustomerId.toText()
+  };
+
+  func _genOpportunityId() : Text {
+    _nextOpportunityId += 1;
+    "OPP" # _nextOpportunityId.toText()
+  };
+
   func _addUserToCompanyIndex(userId : UserId, companyId : CompanyId) {
     let existing = switch (_userCompanies.get(userId)) {
       case (?arr) arr;
@@ -131,6 +210,42 @@ actor ERPVerse {
     _companyMembers.add(companyId, newArr);
   };
 
+  func _addEmployeeToCompanyIndex(companyId : CompanyId, employeeId : Text) {
+    let existing = switch (_companyEmployees.get(companyId)) {
+      case (?arr) arr;
+      case null [];
+    };
+    let newArr = Array.tabulate(
+      existing.size() + 1,
+      func(i) { if (i < existing.size()) existing[i] else employeeId },
+    );
+    _companyEmployees.add(companyId, newArr);
+  };
+
+  func _addCustomerToCompanyIndex(companyId : CompanyId, customerId : Text) {
+    let existing = switch (_companyCustomers.get(companyId)) {
+      case (?arr) arr;
+      case null [];
+    };
+    let newArr = Array.tabulate(
+      existing.size() + 1,
+      func(i) { if (i < existing.size()) existing[i] else customerId },
+    );
+    _companyCustomers.add(companyId, newArr);
+  };
+
+  func _addOpportunityToCompanyIndex(companyId : CompanyId, oppId : Text) {
+    let existing = switch (_companyOpportunities.get(companyId)) {
+      case (?arr) arr;
+      case null [];
+    };
+    let newArr = Array.tabulate(
+      existing.size() + 1,
+      func(i) { if (i < existing.size()) existing[i] else oppId },
+    );
+    _companyOpportunities.add(companyId, newArr);
+  };
+
   func _hasManagerRole(roles : [CompanyRole]) : Bool {
     var found = false;
     var i = 0;
@@ -143,6 +258,10 @@ actor ERPVerse {
       i += 1;
     };
     found
+  };
+
+  func _isMember(userId : UserId, companyId : CompanyId) : Bool {
+    _memberships.get(_memberKey(userId, companyId)) != null
   };
 
   // ─── Public API
@@ -165,12 +284,10 @@ actor ERPVerse {
     ?profile
   };
 
-  // Update call (not query) so it always reads from committed state after registration
   public func loginWithCode(loginCode : Text) : async ?UserProfile {
     _usersByLoginCode.get(loginCode)
   };
 
-  // Update call (not query) for consistent reads after state changes
   public func getUserProfile(userId : UserId) : async ?UserProfile {
     _usersById.get(userId)
   };
@@ -217,7 +334,6 @@ actor ERPVerse {
     _companiesById.get(companyId)
   };
 
-  // Update call for consistent reads after addPersonnelToCompany
   public func getCompanyMemberships(userId : UserId) : async [CompanyMembership] {
     let companyIds = switch (_userCompanies.get(userId)) {
       case (?arr) arr;
@@ -228,7 +344,6 @@ actor ERPVerse {
     })
   };
 
-  // Update call for consistent reads after company registration
   public func getUserCompanies(userId : UserId) : async [Company] {
     let companyIds = switch (_userCompanies.get(userId)) {
       case (?arr) arr;
@@ -355,12 +470,12 @@ actor ERPVerse {
       case null return null;
       case (?c) c;
     };
-    let memberCount = switch (_companyMembers.get(companyId)) {
+    let empCount = switch (_companyEmployees.get(companyId)) {
       case (?arr) arr.size();
       case null 0;
     };
     ?{
-      employeeCount = memberCount;
+      employeeCount = empCount;
       activeModules = 9;
       companyName = company.name;
     }
@@ -368,6 +483,269 @@ actor ERPVerse {
 
   public query func getUserByPersonnelCode(code : Text) : async ?UserProfile {
     _usersByPersonnelCode.get(code)
+  };
+
+  // ─── HR Employee API
+
+  public func addEmployee(
+    companyId : CompanyId,
+    requesterId : UserId,
+    name : Text,
+    position : Text,
+    department : Text,
+    email : Text,
+    salary : Nat,
+  ) : async ?Employee {
+    if (not _isMember(requesterId, companyId)) return null;
+    let empId = _genEmployeeId();
+    let emp : Employee = {
+      id = empId;
+      companyId = companyId;
+      name = name;
+      position = position;
+      department = department;
+      status = #active;
+      email = email;
+      salary = salary;
+      createdAt = _tick();
+    };
+    _employeesById.add(empId, emp);
+    _addEmployeeToCompanyIndex(companyId, empId);
+    ?emp
+  };
+
+  public func updateEmployee(
+    companyId : CompanyId,
+    requesterId : UserId,
+    employeeId : Text,
+    name : Text,
+    position : Text,
+    department : Text,
+    status : EmployeeStatus,
+    email : Text,
+    salary : Nat,
+  ) : async Bool {
+    if (not _isMember(requesterId, companyId)) return false;
+    switch (_employeesById.get(employeeId)) {
+      case null return false;
+      case (?existing) {
+        if (existing.companyId != companyId) return false;
+        _employeesById.add(employeeId, {
+          id = existing.id;
+          companyId = existing.companyId;
+          name = name;
+          position = position;
+          department = department;
+          status = status;
+          email = email;
+          salary = salary;
+          createdAt = existing.createdAt;
+        });
+        true
+      };
+    }
+  };
+
+  public func removeEmployee(
+    companyId : CompanyId,
+    requesterId : UserId,
+    employeeId : Text,
+  ) : async Bool {
+    if (not _isMember(requesterId, companyId)) return false;
+    switch (_employeesById.get(employeeId)) {
+      case null return false;
+      case (?existing) {
+        if (existing.companyId != companyId) return false;
+        _employeesById.remove(employeeId);
+        let empIds = switch (_companyEmployees.get(companyId)) {
+          case (?arr) arr;
+          case null [];
+        };
+        _companyEmployees.add(companyId, empIds.filter(func(eid : Text) : Bool { eid != employeeId }));
+        true
+      };
+    }
+  };
+
+  public query func getEmployees(companyId : CompanyId) : async [Employee] {
+    let empIds = switch (_companyEmployees.get(companyId)) {
+      case (?arr) arr;
+      case null [];
+    };
+    empIds.filterMap(func(eid : Text) : ?Employee {
+      _employeesById.get(eid)
+    })
+  };
+
+  // ─── CRM Customer API
+
+  public func addCustomer(
+    companyId : CompanyId,
+    requesterId : UserId,
+    name : Text,
+    email : Text,
+    phone : Text,
+    company : Text,
+    status : CustomerStatus,
+  ) : async ?Customer {
+    if (not _isMember(requesterId, companyId)) return null;
+    let cusId = _genCustomerId();
+    let cus : Customer = {
+      id = cusId;
+      companyId = companyId;
+      name = name;
+      email = email;
+      phone = phone;
+      company = company;
+      status = status;
+      createdAt = _tick();
+    };
+    _customersById.add(cusId, cus);
+    _addCustomerToCompanyIndex(companyId, cusId);
+    ?cus
+  };
+
+  public func updateCustomerStatus(
+    companyId : CompanyId,
+    requesterId : UserId,
+    customerId : Text,
+    status : CustomerStatus,
+  ) : async Bool {
+    if (not _isMember(requesterId, companyId)) return false;
+    switch (_customersById.get(customerId)) {
+      case null return false;
+      case (?existing) {
+        if (existing.companyId != companyId) return false;
+        _customersById.add(customerId, {
+          id = existing.id;
+          companyId = existing.companyId;
+          name = existing.name;
+          email = existing.email;
+          phone = existing.phone;
+          company = existing.company;
+          status = status;
+          createdAt = existing.createdAt;
+        });
+        true
+      };
+    }
+  };
+
+  public func removeCustomer(
+    companyId : CompanyId,
+    requesterId : UserId,
+    customerId : Text,
+  ) : async Bool {
+    if (not _isMember(requesterId, companyId)) return false;
+    switch (_customersById.get(customerId)) {
+      case null return false;
+      case (?existing) {
+        if (existing.companyId != companyId) return false;
+        _customersById.remove(customerId);
+        let cusIds = switch (_companyCustomers.get(companyId)) {
+          case (?arr) arr;
+          case null [];
+        };
+        _companyCustomers.add(companyId, cusIds.filter(func(cid : Text) : Bool { cid != customerId }));
+        true
+      };
+    }
+  };
+
+  public query func getCustomers(companyId : CompanyId) : async [Customer] {
+    let cusIds = switch (_companyCustomers.get(companyId)) {
+      case (?arr) arr;
+      case null [];
+    };
+    cusIds.filterMap(func(cid : Text) : ?Customer {
+      _customersById.get(cid)
+    })
+  };
+
+  // ─── CRM Opportunity API
+
+  public func addOpportunity(
+    companyId : CompanyId,
+    requesterId : UserId,
+    name : Text,
+    company : Text,
+    value : Nat,
+    assignee : Text,
+    stage : PipelineStage,
+    createdAt : Text,
+  ) : async ?Opportunity {
+    if (not _isMember(requesterId, companyId)) return null;
+    let oppId = _genOpportunityId();
+    let opp : Opportunity = {
+      id = oppId;
+      companyId = companyId;
+      name = name;
+      company = company;
+      value = value;
+      assignee = assignee;
+      stage = stage;
+      createdAt = createdAt;
+    };
+    _opportunitiesById.add(oppId, opp);
+    _addOpportunityToCompanyIndex(companyId, oppId);
+    ?opp
+  };
+
+  public func updateOpportunityStage(
+    companyId : CompanyId,
+    requesterId : UserId,
+    opportunityId : Text,
+    stage : PipelineStage,
+  ) : async Bool {
+    if (not _isMember(requesterId, companyId)) return false;
+    switch (_opportunitiesById.get(opportunityId)) {
+      case null return false;
+      case (?existing) {
+        if (existing.companyId != companyId) return false;
+        _opportunitiesById.add(opportunityId, {
+          id = existing.id;
+          companyId = existing.companyId;
+          name = existing.name;
+          company = existing.company;
+          value = existing.value;
+          assignee = existing.assignee;
+          stage = stage;
+          createdAt = existing.createdAt;
+        });
+        true
+      };
+    }
+  };
+
+  public func removeOpportunity(
+    companyId : CompanyId,
+    requesterId : UserId,
+    opportunityId : Text,
+  ) : async Bool {
+    if (not _isMember(requesterId, companyId)) return false;
+    switch (_opportunitiesById.get(opportunityId)) {
+      case null return false;
+      case (?existing) {
+        if (existing.companyId != companyId) return false;
+        _opportunitiesById.remove(opportunityId);
+        let oppIds = switch (_companyOpportunities.get(companyId)) {
+          case (?arr) arr;
+          case null [];
+        };
+        _companyOpportunities.add(companyId, oppIds.filter(func(oid : Text) : Bool { oid != opportunityId }));
+        true
+      };
+    }
+  };
+
+  public query func getOpportunities(companyId : CompanyId) : async [Opportunity] {
+    let oppIds = switch (_companyOpportunities.get(companyId)) {
+      case (?arr) arr;
+      case null [];
+    };
+    oppIds.filterMap(func(oid : Text) : ?Opportunity {
+      _opportunitiesById.get(oid)
+    })
   };
 
 };

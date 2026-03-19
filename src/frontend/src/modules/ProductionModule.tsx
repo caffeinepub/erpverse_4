@@ -28,6 +28,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useNotifications } from "../contexts/NotificationContext";
 import { useLocalStorage } from "../hooks/useLocalStorage";
+import BOMTab from "./BOMTab";
 import CapacityPlanningTab from "./CapacityPlanningTab";
 
 type ProdStatus = "planned" | "inProgress" | "completed";
@@ -203,6 +204,13 @@ export default function ProductionModule() {
             data-ocid="production.capacity.tab"
           >
             {t("capacity.capacity_planning")}
+          </TabsTrigger>
+          <TabsTrigger
+            value="bom"
+            className="data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-400"
+            data-ocid="production.bom.tab"
+          >
+            {t("bom.title")}
           </TabsTrigger>
         </TabsList>
         <TabsContent value="orders">
@@ -472,6 +480,9 @@ export default function ProductionModule() {
         </TabsContent>
         <TabsContent value="capacity">
           <CapacityPlanningTab cid={companyId} t={t} />
+        </TabsContent>
+        <TabsContent value="bom">
+          <BOMTab companyId={companyId} t={t} />
         </TabsContent>
       </Tabs>
       {/* Material Deduction Dialog */}

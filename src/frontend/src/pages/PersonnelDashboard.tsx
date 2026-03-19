@@ -1,5 +1,6 @@
 import {
   AlertCircle,
+  ArrowLeftRight,
   BarChart3,
   Barcode,
   Building2,
@@ -19,6 +20,7 @@ import {
   LogOut,
   Package,
   PiggyBank,
+  Receipt,
   ShieldAlert,
   ShoppingBag,
   ShoppingCart,
@@ -54,6 +56,7 @@ import CalendarModule from "../modules/CalendarModule";
 import ContractModule from "../modules/ContractModule";
 import CustomerServiceModule from "../modules/CustomerServiceModule";
 import DocumentModule from "../modules/DocumentModule";
+import ExpenseModule from "../modules/ExpenseModule";
 import HRModule from "../modules/HRModule";
 import InventoryModule from "../modules/InventoryModule";
 import KPIModule from "../modules/KPIModule";
@@ -75,6 +78,7 @@ import TimesheetModule from "../modules/TimesheetModule";
 import TradeModule from "../modules/TradeModule";
 import TrainingModule from "../modules/TrainingModule";
 import WarehouseModule from "../modules/WarehouseModule";
+import WarehouseTransferModule from "../modules/WarehouseTransferModule";
 import WorkflowModule from "../modules/WorkflowModule";
 import UserProfilePage from "./UserProfilePage";
 
@@ -229,6 +233,16 @@ const MODULE_CONFIG: Record<
     icon: <Clock className="w-7 h-7" />,
     color: "text-emerald-400",
     bg: "bg-emerald-500/10 border-emerald-500/20",
+  },
+  WarehouseTransfer: {
+    icon: <ArrowLeftRight className="w-7 h-7" />,
+    color: "text-cyan-400",
+    bg: "bg-cyan-500/10 border-cyan-500/20",
+  },
+  Expense: {
+    icon: <Receipt className="w-7 h-7" />,
+    color: "text-orange-400",
+    bg: "bg-orange-500/10 border-orange-500/20",
   },
   KPI: {
     icon: <Target className="w-7 h-7" />,
@@ -468,6 +482,8 @@ export default function PersonnelDashboard({
             />
           )}
           {activeModule === "ProjectCost" && <ProjectCostModule />}
+          {activeModule === "WarehouseTransfer" && <WarehouseTransferModule />}
+          {activeModule === "Expense" && <ExpenseModule mode="employee" />}
           {![
             "HR",
             "Accounting",
@@ -501,6 +517,8 @@ export default function PersonnelDashboard({
             "KPI",
             "SelfService",
             "ProjectCost",
+            "WarehouseTransfer",
+            "Expense",
           ].includes(activeModule) && (
             <div className="flex items-center justify-center h-64">
               <p className="text-slate-400">{t("module.comingSoon")}</p>
