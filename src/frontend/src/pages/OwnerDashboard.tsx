@@ -10,6 +10,7 @@ import {
   ClipboardCheck,
   ClipboardList,
   Clock,
+  CreditCard,
   DollarSign,
   Download,
   Factory,
@@ -87,6 +88,7 @@ import CalendarModule from "../modules/CalendarModule";
 import CashFlowForecast from "../modules/CashFlowForecast";
 import CompanyProfileModule from "../modules/CompanyProfileModule";
 import ContractModule from "../modules/ContractModule";
+import CustomerCreditModule from "../modules/CustomerCreditModule";
 import CustomerServiceModule from "../modules/CustomerServiceModule";
 import DataExportModule from "../modules/DataExportModule";
 import DocumentModule from "../modules/DocumentModule";
@@ -192,7 +194,8 @@ type Tab =
   | "periodclosing"
   | "warehousetransfer"
   | "expense"
-  | "recruitment";
+  | "recruitment"
+  | "creditlimit";
 
 const ALL_MODULES = [
   "HR",
@@ -705,6 +708,11 @@ export default function OwnerDashboard({
       labelKey: "recruitment.title",
       icon: <UserPlus className="w-5 h-5 text-teal-400" />,
     },
+    {
+      id: "creditlimit" as Tab,
+      labelKey: "creditlimit.title",
+      icon: <CreditCard className="w-5 h-5 text-yellow-400" />,
+    },
   ];
 
   return (
@@ -1196,6 +1204,7 @@ export default function OwnerDashboard({
         {tab === "warehousetransfer" && <WarehouseTransferModule />}
         {tab === "expense" && <ExpenseModule mode="manager" />}
         {tab === "recruitment" && <RecruitmentModule />}
+        {tab === "creditlimit" && <CustomerCreditModule />}
         {tab === "profile" && (
           <UserProfilePage
             user={user}

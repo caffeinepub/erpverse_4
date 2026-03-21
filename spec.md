@@ -1,27 +1,21 @@
-# ERPVerse v72 – İşe Alım Süreci (Recruitment)
+# ERPVerse – v73: Müşteri Kredi Limiti
 
 ## Current State
-ERPVerse v71 has Expense Management (ExpenseModule) as the latest addition. OwnerDashboard has ~1312 lines and supports ~50+ module tabs. The backend stores HR employees, CRM customers, and opportunities. Other modules use localStorage.
+v72 itibarıyla İşe Alım Süreci modülü eklenmiş, CRM ve HR verileri backend'de tutuluyor. Onaylı özellik listesinde sıradaki Müşteri Kredi Limiti.
 
 ## Requested Changes (Diff)
 
 ### Add
-- `RecruitmentModule.tsx` – New module for full recruitment lifecycle:
-  - **Pozisyon Yönetimi (Job Positions)**: Create open positions with title, department, required skills, description, status (Açık/Kapalı/Beklemede)
-  - **Aday Takibi (Candidate Tracking)**: Add candidates to positions with name, email, phone, application date, CV notes
-  - **Mülakat Yönetimi (Interview Management)**: Schedule interviews for candidates, set date/time, interviewer, result (Bekliyor/Geçti/Kaldı)
-  - **Kanban/Status view**: Candidates move through stages: Başvurdu → İnceleniyor → Mülakat → Teklif → İşe Alındı / Reddedildi
-  - **Özet kartları**: Total positions, open positions, total candidates, hired count
-- Add "recruitment" tab to OwnerDashboard tab list and import RecruitmentModule
-- Add translation keys for recruitment module in all 8 languages
+- `CustomerCreditModule` bileşeni: CRM müşterilerine kredi limiti tanımlama, kullanılan borç miktarı girişi, kalan limit ve doluluk oranı görüntüleme, limit aşımında uyarı gösterimi
+- OwnerDashboard'a `creditlimit` tab'ı ekleme
+- localStorage key: `erpverse_credit_limits_{companyId}`
 
 ### Modify
-- `OwnerDashboard.tsx`: Add "recruitment" to Tab type, add tab entry in tabs array under HR section, add render condition for RecruitmentModule
+- `OwnerDashboard.tsx`: creditlimit tab ve nav item ekleme, CustomerCreditModule import
 
 ### Remove
-- Nothing removed
+- Yok
 
 ## Implementation Plan
-1. Create `src/frontend/src/modules/RecruitmentModule.tsx` with full recruitment UI using localStorage for data persistence
-2. Add recruitment tab import and render to OwnerDashboard.tsx
-3. Add translation keys to LanguageContext or translations file
+1. `CustomerCreditModule.tsx` oluştur: müşteri listesini CRM'den oku, her müşteri için kredi limiti ve kullanılan tutar tanımla, doluluk progress bar, limit aşımı kırmızı uyarı
+2. OwnerDashboard'a tab ve nav item ekle
