@@ -21,6 +21,7 @@ import {
   Package,
   PiggyBank,
   Receipt,
+  RefreshCw,
   ShieldAlert,
   ShoppingBag,
   ShoppingCart,
@@ -46,6 +47,7 @@ import type {
   UserProfile,
 } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
+import AbonelikYonetimi from "../modules/AbonelikYonetimi";
 import AccountingModule from "../modules/AccountingModule";
 import AssetModule from "../modules/AssetModule";
 import BIModule from "../modules/BIModule";
@@ -264,6 +266,8 @@ export default function PersonnelDashboard({
   const [showProfile, setShowProfile] = useState(false);
 
   const grantedModules = membership?.grantedModules ?? [];
+  const isManager =
+    membership?.roles?.some((r) => "CompanyManager" in r) ?? false;
 
   const getRoleLabel = () => {
     if (!membership) return "";
@@ -395,7 +399,23 @@ export default function PersonnelDashboard({
               {t("selfService.title")}
             </p>
           </button>
+          {isManager && (
+            <button
+              type="button"
+              onClick={() => setActiveModule("Subscription")}
+              className="bg-violet-500/10 border border-violet-500/20 rounded-xl p-5 text-left hover:scale-[1.02] transition-all"
+              data-ocid="subscription.open_modal_button"
+            >
+              <div className="text-violet-400 mb-3">
+                <RefreshCw className="w-7 h-7" />
+              </div>
+              <p className="text-white font-semibold text-sm">
+                {t("subscription.title")}
+              </p>
+            </button>
+          )}
         </div>
+
         {grantedModules.length === 0 ? (
           <div className="text-center py-16" data-ocid="modules.empty_state">
             <Package className="w-12 h-12 text-slate-600 mx-auto mb-3" />
@@ -484,6 +504,9 @@ export default function PersonnelDashboard({
           {activeModule === "ProjectCost" && <ProjectCostModule />}
           {activeModule === "WarehouseTransfer" && <WarehouseTransferModule />}
           {activeModule === "Expense" && <ExpenseModule mode="employee" />}
+          {activeModule === "Subscription" && company && (
+            <AbonelikYonetimi companyId={company.id} />
+          )}
           {![
             "HR",
             "Accounting",
@@ -519,6 +542,7 @@ export default function PersonnelDashboard({
             "ProjectCost",
             "WarehouseTransfer",
             "Expense",
+            "Subscription",
           ].includes(activeModule) && (
             <div className="flex items-center justify-center h-64">
               <p className="text-slate-400">{t("module.comingSoon")}</p>

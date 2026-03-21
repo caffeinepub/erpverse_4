@@ -32,6 +32,8 @@ import {
   Percent,
   PiggyBank,
   Receipt,
+  RefreshCw,
+  Scale,
   ScanLine,
   Settings,
   ShieldAlert,
@@ -76,6 +78,7 @@ import type {
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { useActor } from "../hooks/useActor";
+import AbonelikYonetimi from "../modules/AbonelikYonetimi";
 import AccountingModule from "../modules/AccountingModule";
 import AssetModule from "../modules/AssetModule";
 import AutomationModule from "../modules/AutomationModule";
@@ -85,6 +88,7 @@ import BarcodeModule from "../modules/BarcodeModule";
 import BudgetModule from "../modules/BudgetModule";
 import CRMModule from "../modules/CRMModule";
 import CalendarModule from "../modules/CalendarModule";
+import CariHesapModule from "../modules/CariHesapModule";
 import CashFlowForecast from "../modules/CashFlowForecast";
 import CompanyProfileModule from "../modules/CompanyProfileModule";
 import ContractModule from "../modules/ContractModule";
@@ -195,7 +199,9 @@ type Tab =
   | "warehousetransfer"
   | "expense"
   | "recruitment"
-  | "creditlimit";
+  | "creditlimit"
+  | "subscription"
+  | "carihesap";
 
 const ALL_MODULES = [
   "HR",
@@ -713,6 +719,16 @@ export default function OwnerDashboard({
       labelKey: "creditlimit.title",
       icon: <CreditCard className="w-5 h-5 text-yellow-400" />,
     },
+    {
+      id: "subscription" as Tab,
+      labelKey: "subscription.title",
+      icon: <RefreshCw className="w-5 h-5 text-violet-400" />,
+    },
+    {
+      id: "carihesap" as Tab,
+      labelKey: "cari.title",
+      icon: <Scale className="w-5 h-5 text-indigo-400" />,
+    },
   ];
 
   return (
@@ -1205,6 +1221,14 @@ export default function OwnerDashboard({
         {tab === "expense" && <ExpenseModule mode="manager" />}
         {tab === "recruitment" && <RecruitmentModule />}
         {tab === "creditlimit" && <CustomerCreditModule />}
+        {tab === "subscription" && <AbonelikYonetimi companyId={company.id} />}
+        {tab === "carihesap" && (
+          <CariHesapModule
+            companyId={company.id}
+            userId={user.id}
+            userRole="CompanyOwner"
+          />
+        )}
         {tab === "profile" && (
           <UserProfilePage
             user={user}

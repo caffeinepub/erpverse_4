@@ -1,21 +1,33 @@
-# ERPVerse – v73: Müşteri Kredi Limiti
+# ERPVerse v75 – Cari Hesap Yönetimi
 
 ## Current State
-v72 itibarıyla İşe Alım Süreci modülü eklenmiş, CRM ve HR verileri backend'de tutuluyor. Onaylı özellik listesinde sıradaki Müşteri Kredi Limiti.
+ERPVerse is a modular ERP with 70+ features. v74 added Subscription/Recurring Invoice. The app uses localStorage for most modules and backend canister for Auth, HR, and CRM. All UI text uses t() for translation.
 
 ## Requested Changes (Diff)
 
 ### Add
-- `CustomerCreditModule` bileşeni: CRM müşterilerine kredi limiti tanımlama, kullanılan borç miktarı girişi, kalan limit ve doluluk oranı görüntüleme, limit aşımında uyarı gösterimi
-- OwnerDashboard'a `creditlimit` tab'ı ekleme
-- localStorage key: `erpverse_credit_limits_{companyId}`
+- **Cari Hesap Yönetimi** module in OwnerDashboard left menu
+  - Two tabs: Müşteri Cari (customer accounts) and Tedarikçi Cari (supplier accounts)
+  - Each account shows: name, total debt (borç), total credit (alacak), net balance (bakiye)
+  - Ability to add manual transactions: type (Fatura/Ödeme/İade/Virman), amount, description, date
+  - Transaction history list per account with running balance
+  - Color-coded balance: green = credit (alacak fazlası), red = debt (borç fazlası), gray = zero
+  - Summary cards at top: total receivables (toplam alacak), total payables (toplam borç), net position
+  - Accounts auto-populated from CRM customers (from localStorage crm_customers) and Purchasing suppliers (from localStorage purchasing_suppliers)
+  - LocalStorage key: cari_hesap_[companyId]
 
 ### Modify
-- `OwnerDashboard.tsx`: creditlimit tab ve nav item ekleme, CustomerCreditModule import
+- OwnerDashboard: add "Cari Hesap" menu item
 
 ### Remove
-- Yok
+- Nothing removed
 
 ## Implementation Plan
-1. `CustomerCreditModule.tsx` oluştur: müşteri listesini CRM'den oku, her müşteri için kredi limiti ve kullanılan tutar tanımla, doluluk progress bar, limit aşımı kırmızı uyarı
-2. OwnerDashboard'a tab ve nav item ekle
+1. Create CariHesapModule.tsx component with:
+   - Summary cards (toplam alacak, toplam borç, net)
+   - Tabs: Müşteri Cari / Tedarikçi Cari
+   - Account list with balance indicators
+   - Transaction modal: add transaction (Fatura/Ödeme/İade/Virman), amount, description, date
+   - Per-account transaction history with running balance calculation
+   - Data stored in localStorage with companyId isolation
+2. Add Cari Hesap menu item to OwnerDashboard navigation
