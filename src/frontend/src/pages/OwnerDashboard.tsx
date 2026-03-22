@@ -5,6 +5,7 @@ import {
   Barcode,
   Building,
   Building2,
+  CalendarCheck,
   CalendarDays,
   CheckSquare,
   ClipboardCheck,
@@ -102,6 +103,7 @@ import FinancialStatementsModule from "../modules/FinancialStatementsModule";
 import HRModule from "../modules/HRModule";
 import InventoryModule from "../modules/InventoryModule";
 import KPIModule from "../modules/KPIModule";
+import LeaveRequestModule from "../modules/LeaveRequestModule";
 import LoyaltyModule from "../modules/LoyaltyModule";
 import MaintenanceModule from "../modules/MaintenanceModule";
 import MultiLevelApprovalModule from "../modules/MultiLevelApprovalModule";
@@ -119,6 +121,7 @@ import ProjectsModule from "../modules/ProjectsModule";
 import PurchasingModule from "../modules/PurchasingModule";
 import QualityChecklistModule from "../modules/QualityChecklistModule";
 import QualityModule from "../modules/QualityModule";
+import QuotationsModule from "../modules/QuotationsModule";
 import RecruitmentModule from "../modules/RecruitmentModule";
 import ReportingModule from "../modules/ReportingModule";
 import RiskModule from "../modules/RiskModule";
@@ -201,7 +204,9 @@ type Tab =
   | "recruitment"
   | "creditlimit"
   | "subscription"
-  | "carihesap";
+  | "carihesap"
+  | "leaverequests"
+  | "quotations";
 
 const ALL_MODULES = [
   "HR",
@@ -237,6 +242,7 @@ const ALL_MODULES = [
   "Shifts",
   "WarehouseTransfer",
   "Expense",
+  "Quotations",
 ];
 
 const ROLES = [
@@ -728,6 +734,16 @@ export default function OwnerDashboard({
       id: "carihesap" as Tab,
       labelKey: "cari.title",
       icon: <Scale className="w-5 h-5 text-indigo-400" />,
+    },
+    {
+      id: "leaverequests" as Tab,
+      labelKey: "leaveRequests.title",
+      icon: <CalendarCheck className="w-5 h-5 text-teal-400" />,
+    },
+    {
+      id: "quotations" as Tab,
+      labelKey: "quotation.title",
+      icon: <FileText className="w-5 h-5 text-amber-400" />,
     },
   ];
 
@@ -1224,6 +1240,14 @@ export default function OwnerDashboard({
         {tab === "subscription" && <AbonelikYonetimi companyId={company.id} />}
         {tab === "carihesap" && (
           <CariHesapModule
+            companyId={company.id}
+            userId={user.id}
+            userRole="CompanyOwner"
+          />
+        )}
+        {tab === "quotations" && <QuotationsModule />}
+        {tab === "leaverequests" && (
+          <LeaveRequestModule
             companyId={company.id}
             userId={user.id}
             userRole="CompanyOwner"

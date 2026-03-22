@@ -1,5 +1,14 @@
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -9,8 +18,18 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertCircle, Award, CalendarDays, FileText } from "lucide-react";
-import { useMemo } from "react";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertCircle,
+  Award,
+  CalendarDays,
+  ChevronDown,
+  ChevronUp,
+  FileText,
+  Plus,
+} from "lucide-react";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import type { UserProfile } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 
@@ -317,6 +336,8 @@ export default function PersonnelSelfServiceModule({ user, companyId }: Props) {
         {/* LEAVE TAB */}
         <TabsContent value="leave">
           <div className="space-y-6">
+            {/* New Leave Request Form */}
+            <LeaveRequestForm companyId={companyId} user={user} />
             {/* Balance cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Annual */}
@@ -497,6 +518,174 @@ export default function PersonnelSelfServiceModule({ user, companyId }: Props) {
           )}
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+interface LeaveFormProps {
+  companyId: string;
+  user: { displayName: string };
+}
+
+function LeaveRequestForm({ companyId, user }: LeaveFormProps) {
+  const { t } = useLanguage();
+  const [expanded, setExpanded] = useState(false);
+  const [leaveType, setLeaveType] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [reason, setReason] = useState("");
+
+  const leaveTypes = [
+    t("leaveRequests.annual"),
+    t("leaveRequests.sick"),
+    t("leaveRequests.excuse"),
+    t("leaveRequests.unpaid"),
+    t("leaveRequests.parental"),
+  ];
+
+  const calcDays = () => {
+    if (!startDate || !endDate) return 0;
+    const diff = new Date(endDate).getTime() - new Date(startDate).getTime();
+    return Math.max(0, Math.ceil(diff / 86400000) + 1);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!leaveType || !startDate || !endDate || !reason) return;
+
+    const storageKey = `hr_leave_requests_${companyId}`;
+    const existing = (() => {
+      try {
+        return JSON.parse(localStorage.getItem(storageKey) || "[]");
+      } catch {
+        return [];
+      }
+    })();
+
+    const newRequest = {
+      id: `lr_${Date.now()}`,
+      employeeName: user.displayName || "Personel",
+      leaveType,
+      startDate,
+      endDate,
+      days: calcDays(),
+      reason,
+      status: "Beklemede",
+      createdAt: new Date().toISOString().slice(0, 10),
+    };
+
+    localStorage.setItem(storageKey, JSON.stringify([...existing, newRequest]));
+    toast.success(t("leaveRequests.submitSuccess"));
+    setExpanded(false);
+    setLeaveType("");
+    setStartDate("");
+    setEndDate("");
+    setReason("");
+  };
+
+  return (
+    <div className="bg-slate-800/60 border border-white/10 rounded-xl overflow-hidden">
+      <button
+        type="button"
+        className="w-full flex items-center justify-between px-5 py-4 text-white hover:bg-white/5 transition-colors"
+        onClick={() => setExpanded((v) => !v)}
+        data-ocid="leaverequests.create.toggle"
+      >
+        <div className="flex items-center gap-2 font-semibold">
+          <Plus className="w-4 h-4 text-teal-400" />
+          {t("leaveRequests.createNew")}
+        </div>
+        {expanded ? (
+          <ChevronUp className="w-4 h-4 text-slate-400" />
+        ) : (
+          <ChevronDown className="w-4 h-4 text-slate-400" />
+        )}
+      </button>
+
+      {expanded && (
+        <form
+          onSubmit={handleSubmit}
+          className="px-5 pb-5 space-y-4 border-t border-white/10 pt-4"
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <Label className="text-slate-300 text-sm">
+                {t("leaveRequests.leaveType")}
+              </Label>
+              <Select value={leaveType} onValueChange={setLeaveType}>
+                <SelectTrigger
+                  className="bg-slate-900 border-white/20 text-white"
+                  data-ocid="leaverequests.type.select"
+                >
+                  <SelectValue placeholder={t("leaveRequests.selectType")} />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-800 border-white/10">
+                  {leaveTypes.map((lt) => (
+                    <SelectItem
+                      key={lt}
+                      value={lt}
+                      className="text-white focus:bg-white/10"
+                    >
+                      {lt}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-slate-300 text-sm">
+                {t("leaveRequests.days")}: {calcDays()}
+              </Label>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs text-slate-400">
+                    {t("leaveRequests.startDate")}
+                  </Label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full bg-slate-900 border border-white/20 rounded-md px-3 py-2 text-white text-sm"
+                    data-ocid="leaverequests.start_date.input"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-slate-400">
+                    {t("leaveRequests.endDate")}
+                  </Label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full bg-slate-900 border border-white/20 rounded-md px-3 py-2 text-white text-sm"
+                    data-ocid="leaverequests.end_date.input"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-slate-300 text-sm">
+              {t("leaveRequests.reason")}
+            </Label>
+            <Textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder={t("leaveRequests.reasonPlaceholder")}
+              className="bg-slate-900 border-white/20 text-white resize-none"
+              rows={3}
+              data-ocid="leaverequests.reason.textarea"
+            />
+          </div>
+          <Button
+            type="submit"
+            className="bg-teal-600 hover:bg-teal-500 text-white"
+            data-ocid="leaverequests.submit.button"
+          >
+            {t("leaveRequests.submit")}
+          </Button>
+        </form>
+      )}
     </div>
   );
 }

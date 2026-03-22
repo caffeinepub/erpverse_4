@@ -71,6 +71,7 @@ import ProjectCostModule from "../modules/ProjectCostModule";
 import ProjectsModule from "../modules/ProjectsModule";
 import PurchasingModule from "../modules/PurchasingModule";
 import QualityModule from "../modules/QualityModule";
+import QuotationsModule from "../modules/QuotationsModule";
 import ReportingModule from "../modules/ReportingModule";
 import SalesModule from "../modules/SalesModule";
 import ShiftModule from "../modules/ShiftModule";
@@ -504,6 +505,7 @@ export default function PersonnelDashboard({
           {activeModule === "ProjectCost" && <ProjectCostModule />}
           {activeModule === "WarehouseTransfer" && <WarehouseTransferModule />}
           {activeModule === "Expense" && <ExpenseModule mode="employee" />}
+          {activeModule === "Quotations" && <QuotationsModule />}
           {activeModule === "Subscription" && company && (
             <AbonelikYonetimi companyId={company.id} />
           )}
@@ -543,6 +545,7 @@ export default function PersonnelDashboard({
             "WarehouseTransfer",
             "Expense",
             "Subscription",
+            "Quotations",
           ].includes(activeModule) && (
             <div className="flex items-center justify-center h-64">
               <p className="text-slate-400">{t("module.comingSoon")}</p>
