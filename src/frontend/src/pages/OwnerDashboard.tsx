@@ -34,6 +34,7 @@ import {
   PiggyBank,
   Receipt,
   RefreshCw,
+  RotateCcw,
   Scale,
   ScanLine,
   Settings,
@@ -114,6 +115,7 @@ import PersonalizedDashboardWidget, {
 } from "../modules/PersonalizedDashboardWidget";
 import PhysicalInventoryModule from "../modules/PhysicalInventoryModule";
 import PriceListModule from "../modules/PriceListModule";
+import PrimKomisyonModule from "../modules/PrimKomisyonModule";
 import ProductCatalogModule from "../modules/ProductCatalogModule";
 import ProductionModule from "../modules/ProductionModule";
 import ProjectCostModule from "../modules/ProjectCostModule";
@@ -124,6 +126,7 @@ import QualityModule from "../modules/QualityModule";
 import QuotationsModule from "../modules/QuotationsModule";
 import RecruitmentModule from "../modules/RecruitmentModule";
 import ReportingModule from "../modules/ReportingModule";
+import ReturnRMAModule from "../modules/ReturnRMAModule";
 import RiskModule from "../modules/RiskModule";
 import SalesForecastModule from "../modules/SalesForecastModule";
 import SalesModule from "../modules/SalesModule";
@@ -210,7 +213,9 @@ type Tab =
   | "leaverequests"
   | "quotations"
   | "sales-orders"
-  | "shipment-tracking";
+  | "shipment-tracking"
+  | "returns-rma"
+  | "primkomiyon";
 
 const ALL_MODULES = [
   "HR",
@@ -759,6 +764,16 @@ export default function OwnerDashboard({
       labelKey: "shipment.title",
       icon: <Truck className="w-5 h-5 text-cyan-400" />,
     },
+    {
+      id: "primkomiyon" as Tab,
+      labelKey: "primKomiyon.title",
+      icon: <Percent className="w-5 h-5 text-violet-400" />,
+    },
+    {
+      id: "returns-rma" as Tab,
+      labelKey: "rma.title",
+      icon: <RotateCcw className="w-5 h-5 text-rose-400" />,
+    },
   ];
 
   return (
@@ -1264,6 +1279,12 @@ export default function OwnerDashboard({
           <SalesOrderManagementModule company={company} user={user} />
         )}
         {tab === "shipment-tracking" && <ShipmentTrackingModule />}
+        {tab === "returns-rma" && (
+          <ReturnRMAModule companyId={company.id} userRole="CompanyOwner" />
+        )}
+        {tab === "primkomiyon" && (
+          <PrimKomisyonModule companyId={company.id} userRole="CompanyOwner" />
+        )}
         {tab === "leaverequests" && (
           <LeaveRequestModule
             companyId={company.id}

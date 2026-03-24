@@ -22,6 +22,7 @@ import {
   PiggyBank,
   Receipt,
   RefreshCw,
+  RotateCcw,
   ShieldAlert,
   ShoppingBag,
   ShoppingCart,
@@ -73,6 +74,7 @@ import PurchasingModule from "../modules/PurchasingModule";
 import QualityModule from "../modules/QualityModule";
 import QuotationsModule from "../modules/QuotationsModule";
 import ReportingModule from "../modules/ReportingModule";
+import ReturnRMAModule from "../modules/ReturnRMAModule";
 import SalesModule from "../modules/SalesModule";
 import ShiftModule from "../modules/ShiftModule";
 import SupplyChainModule from "../modules/SupplyChainModule";
@@ -196,6 +198,11 @@ const MODULE_CONFIG: Record<
     icon: <FileText className="w-7 h-7" />,
     color: "text-teal-400",
     bg: "bg-teal-500/10 border-teal-500/20",
+  },
+  ReturnRMA: {
+    icon: <RotateCcw className="w-7 h-7" />,
+    color: "text-rose-400",
+    bg: "bg-rose-500/10 border-rose-500/20",
   },
   Tasks: {
     icon: <CheckSquare className="w-7 h-7" />,
@@ -506,6 +513,16 @@ export default function PersonnelDashboard({
           {activeModule === "WarehouseTransfer" && <WarehouseTransferModule />}
           {activeModule === "Expense" && <ExpenseModule mode="employee" />}
           {activeModule === "Quotations" && <QuotationsModule />}
+          {activeModule === "ReturnRMA" && company && (
+            <ReturnRMAModule
+              companyId={company.id}
+              userRole={
+                membership?.roles?.[0]
+                  ? Object.keys(membership.roles[0])[0]
+                  : "Staff"
+              }
+            />
+          )}
           {activeModule === "Subscription" && company && (
             <AbonelikYonetimi companyId={company.id} />
           )}
@@ -546,6 +563,7 @@ export default function PersonnelDashboard({
             "Expense",
             "Subscription",
             "Quotations",
+            "ReturnRMA",
           ].includes(activeModule) && (
             <div className="flex items-center justify-center h-64">
               <p className="text-slate-400">{t("module.comingSoon")}</p>
