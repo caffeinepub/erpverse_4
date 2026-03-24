@@ -1339,6 +1339,7 @@ const translations: Record<Language, Record<string, string>> = {
     "quotation.confirmInvoice":
       "Bu teklif/proforma faturaya dönüştürülecek. Onaylıyor musunuz?",
     "quotation.productPlaceholder": "Ürün veya hizmet adı",
+    "shipment.title": "Teslimat & Sevkiyat Takibi",
 
     "hr.leaveManagement": "İzin Yönetimi",
     "hr.leaveType": "İzin Türü",

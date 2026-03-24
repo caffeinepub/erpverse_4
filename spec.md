@@ -1,31 +1,27 @@
-# ERPVerse v77 – Fiyat Teklifi & Proforma Fatura
+# ERPVerse v79 – Teslimat & Sevkiyat Takibi
 
 ## Current State
-ERPVerse v76 has 76+ ERP modules. CRM module manages customers and opportunities. Invoice module handles billing. There is no intermediate quotation/proforma step between CRM opportunities and invoices.
+v78 added Sales Order Management (SalesOrderManagementModule). The app has a full sales cycle: CRM → Quotation → Sales Order. However, there is no shipment/delivery tracking after orders are confirmed.
 
 ## Requested Changes (Diff)
 
 ### Add
-- New "Fiyat Teklifi" (Sales Quotation) tab in Owner/Manager dashboard
-- Create quotation with: customer (from CRM), validity date, line items (product/service, qty, unit price, discount, VAT rate), notes
-- Quotation statuses: Taslak (Draft), Gönderildi (Sent), Onaylandı (Approved), Reddedildi (Rejected), İptal
-- Convert approved quotation to Proforma Fatura (Proforma Invoice)
-- Convert proforma to final Invoice (links to existing invoice module)
-- Quotation list with search/filter by status, customer, date
-- Print/PDF view for quotation and proforma
-- Audit log entries for quotation actions
+- New `ShipmentTrackingModule.tsx` frontend module
+- New `shipment-tracking` tab in OwnerDashboard menu
+- Shipment records linked to sales orders: order reference, customer, cargo company, tracking number, estimated delivery date, status
+- Status flow: Hazırlanıyor → Kargoya Verildi → Yolda → Teslim Edildi → İptal
+- List view with filters by status and search by order/customer
+- Create shipment form (link to sales order or manual entry)
+- Status update action per shipment
+- Translation keys for all UI text
 
 ### Modify
-- OwnerDashboard: add Fiyat Teklifi menu item
-- Personnel dashboard (manager role): add Fiyat Teklifi access based on permissions
+- `OwnerDashboard.tsx`: add import and tab case for `shipment-tracking`
+- Add menu item for Teslimat & Sevkiyat Takibi in sidebar
 
 ### Remove
-- Nothing removed
+- Nothing
 
 ## Implementation Plan
-1. Add quotation data model to localStorage (companyId-scoped)
-2. Create QuotationModule component with list, create form, detail/status management
-3. Add convert-to-proforma and convert-to-invoice actions
-4. Add print view for quotation/proforma
-5. Wire into OwnerDashboard sidebar menu
-6. All text via t() translation function
+1. Create `ShipmentTrackingModule.tsx` with full CRUD and status tracking
+2. Add tab + menu item to OwnerDashboard

@@ -127,8 +127,10 @@ import ReportingModule from "../modules/ReportingModule";
 import RiskModule from "../modules/RiskModule";
 import SalesForecastModule from "../modules/SalesForecastModule";
 import SalesModule from "../modules/SalesModule";
+import SalesOrderManagementModule from "../modules/SalesOrderManagementModule";
 import SerialLotModule from "../modules/SerialLotModule";
 import ShiftModule from "../modules/ShiftModule";
+import ShipmentTrackingModule from "../modules/ShipmentTrackingModule";
 import SupplyChainDeepModule from "../modules/SupplyChainDeepModule";
 import SupplyChainModule from "../modules/SupplyChainModule";
 import TaskModule from "../modules/TaskModule";
@@ -206,7 +208,9 @@ type Tab =
   | "subscription"
   | "carihesap"
   | "leaverequests"
-  | "quotations";
+  | "quotations"
+  | "sales-orders"
+  | "shipment-tracking";
 
 const ALL_MODULES = [
   "HR",
@@ -745,6 +749,16 @@ export default function OwnerDashboard({
       labelKey: "quotation.title",
       icon: <FileText className="w-5 h-5 text-amber-400" />,
     },
+    {
+      id: "sales-orders" as Tab,
+      labelKey: "salesOrders.title",
+      icon: <ShoppingBag className="w-5 h-5 text-orange-400" />,
+    },
+    {
+      id: "shipment-tracking" as Tab,
+      labelKey: "shipment.title",
+      icon: <Truck className="w-5 h-5 text-cyan-400" />,
+    },
   ];
 
   return (
@@ -1246,6 +1260,10 @@ export default function OwnerDashboard({
           />
         )}
         {tab === "quotations" && <QuotationsModule />}
+        {tab === "sales-orders" && (
+          <SalesOrderManagementModule company={company} user={user} />
+        )}
+        {tab === "shipment-tracking" && <ShipmentTrackingModule />}
         {tab === "leaverequests" && (
           <LeaveRequestModule
             companyId={company.id}
