@@ -27,6 +27,7 @@ import {
   ChevronUp,
   FileText,
   Plus,
+  Target,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -271,6 +272,14 @@ export default function PersonnelSelfServiceModule({ user, companyId }: Props) {
           >
             <Award className="w-4 h-4 mr-1.5" />
             {t("selfService.certs")}
+          </TabsTrigger>
+          <TabsTrigger
+            value="goals"
+            className="data-[state=active]:bg-violet-600"
+            data-ocid="self-service.goals.tab"
+          >
+            <Target className="w-4 h-4 mr-1.5" />
+            {t("selfService.goals")}
           </TabsTrigger>
         </TabsList>
 
@@ -517,6 +526,11 @@ export default function PersonnelSelfServiceModule({ user, companyId }: Props) {
             </div>
           )}
         </TabsContent>
+
+        {/* GOALS TAB */}
+        <TabsContent value="goals">
+          <MyGoalsTab companyId={companyId} user={user} />
+        </TabsContent>
       </Tabs>
     </div>
   );
@@ -686,6 +700,174 @@ function LeaveRequestForm({ companyId, user }: LeaveFormProps) {
           </Button>
         </form>
       )}
+    </div>
+  );
+}
+
+interface MyGoalsTabProps {
+  companyId: string;
+  user: { displayName: string };
+}
+
+interface KRView {
+  id: string;
+  title: string;
+  targetValue: number;
+  currentValue: number;
+  unit: string;
+}
+
+interface ObjView {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  title: string;
+  period: string;
+  periodLabel: string;
+  status: string;
+  keyResults: KRView[];
+}
+
+function MyGoalsTab({ companyId, user }: MyGoalsTabProps) {
+  const { t } = useLanguage();
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  const objectives = useMemo(() => {
+    try {
+      const all: ObjView[] = JSON.parse(
+        localStorage.getItem(`erp_okr_${companyId}`) || "[]",
+      );
+      const displayName = user.displayName || "";
+      return all.filter(
+        (o) =>
+          o.employeeName.toLowerCase().trim() ===
+          displayName.toLowerCase().trim(),
+      );
+    } catch {
+      return [];
+    }
+  }, [companyId, user.displayName]);
+
+  const calcKRProg = (kr: KRView) =>
+    kr.targetValue === 0
+      ? 0
+      : Math.min(100, Math.round((kr.currentValue / kr.targetValue) * 100));
+
+  const calcObjProg = (obj: ObjView) => {
+    if (obj.keyResults.length === 0) return 0;
+    return Math.round(
+      obj.keyResults.reduce((s, kr) => s + calcKRProg(kr), 0) /
+        obj.keyResults.length,
+    );
+  };
+
+  const progressBarColor = (pct: number) => {
+    if (pct >= 100) return "bg-emerald-500";
+    if (pct >= 60) return "bg-blue-500";
+    if (pct >= 30) return "bg-amber-500";
+    return "bg-red-500";
+  };
+
+  const statusColors: Record<string, string> = {
+    Aktif: "bg-blue-500/20 text-blue-300 border-blue-500/30",
+    Tamamlandı: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+    İptal: "bg-red-500/20 text-red-300 border-red-500/30",
+  };
+
+  if (objectives.length === 0) {
+    return (
+      <div
+        className="text-center py-20 text-slate-400"
+        data-ocid="self-service.goals.empty_state"
+      >
+        <Target className="w-12 h-12 mx-auto mb-4 opacity-30" />
+        <p>{t("selfService.noGoals")}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4" data-ocid="self-service.goals.list">
+      {objectives.map((obj, idx) => {
+        const prog = calcObjProg(obj);
+        const isExpanded = expanded === obj.id;
+        return (
+          <div
+            key={obj.id}
+            className="bg-slate-800/60 border border-white/10 rounded-xl overflow-hidden"
+            data-ocid={`self-service.goals.item.${idx + 1}`}
+          >
+            <div className="p-4 flex items-start gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded border ${statusColors[obj.status] || "bg-slate-500/20 text-slate-300 border-slate-500/30"}`}
+                  >
+                    {obj.status}
+                  </span>
+                  <span className="text-xs text-slate-400">
+                    {obj.periodLabel}
+                  </span>
+                </div>
+                <p className="text-white font-medium mb-3">{obj.title}</p>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 bg-slate-700 rounded-full h-2 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${progressBarColor(prog)}`}
+                      style={{ width: `${prog}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-semibold text-slate-300 whitespace-nowrap">
+                    {prog}%
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setExpanded(isExpanded ? null : obj.id)}
+                className="text-slate-400 hover:text-white p-1"
+              >
+                {isExpanded ? (
+                  <ChevronUp className="w-4 h-4" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )}
+              </button>
+            </div>
+            {isExpanded && (
+              <div className="border-t border-white/10 p-4 space-y-3">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  {t("okr.keyResultsTitle")}
+                </p>
+                {obj.keyResults.map((kr, kidx) => {
+                  const krProg = calcKRProg(kr);
+                  return (
+                    <div
+                      key={kr.id}
+                      className="bg-slate-900/50 rounded-lg p-3"
+                      data-ocid={`self-service.goals.kr.${kidx + 1}`}
+                    >
+                      <p className="text-sm text-white mb-2">{kr.title}</p>
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 bg-slate-700 rounded-full h-1.5 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${progressBarColor(krProg)}`}
+                            style={{ width: `${krProg}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-slate-400 whitespace-nowrap">
+                          {kr.currentValue} / {kr.targetValue} {kr.unit} (
+                          {krProg}%)
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

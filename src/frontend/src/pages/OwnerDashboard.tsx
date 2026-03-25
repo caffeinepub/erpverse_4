@@ -48,6 +48,7 @@ import {
   TrendingUp,
   Truck,
   User,
+  UserCheck,
   UserPlus,
   Users,
   Users2,
@@ -108,6 +109,8 @@ import LeaveRequestModule from "../modules/LeaveRequestModule";
 import LoyaltyModule from "../modules/LoyaltyModule";
 import MaintenanceModule from "../modules/MaintenanceModule";
 import MultiLevelApprovalModule from "../modules/MultiLevelApprovalModule";
+import OKRModule from "../modules/OKRModule";
+import OnboardingModule from "../modules/OnboardingModule";
 import PayrollModule from "../modules/PayrollModule";
 import PeriodClosingModule from "../modules/PeriodClosingModule";
 import PersonalizedDashboardWidget, {
@@ -215,7 +218,9 @@ type Tab =
   | "sales-orders"
   | "shipment-tracking"
   | "returns-rma"
-  | "primkomiyon";
+  | "primkomiyon"
+  | "Onboarding"
+  | "okr";
 
 const ALL_MODULES = [
   "HR",
@@ -774,6 +779,16 @@ export default function OwnerDashboard({
       labelKey: "rma.title",
       icon: <RotateCcw className="w-5 h-5 text-rose-400" />,
     },
+    {
+      id: "Onboarding" as Tab,
+      labelKey: "onboarding.title",
+      icon: <UserCheck className="w-5 h-5 text-teal-400" />,
+    },
+    {
+      id: "okr" as Tab,
+      labelKey: "okr.title",
+      icon: <Target className="w-5 h-5 text-amber-400" />,
+    },
   ];
 
   return (
@@ -1282,6 +1297,8 @@ export default function OwnerDashboard({
         {tab === "returns-rma" && (
           <ReturnRMAModule companyId={company.id} userRole="CompanyOwner" />
         )}
+        {tab === "Onboarding" && <OnboardingModule />}
+        {tab === "okr" && <OKRModule />}
         {tab === "primkomiyon" && (
           <PrimKomisyonModule companyId={company.id} userRole="CompanyOwner" />
         )}
