@@ -29,6 +29,7 @@ import {
   LayoutDashboard,
   Link2,
   LogOut,
+  MapPin,
   Package,
   Percent,
   PiggyBank,
@@ -95,6 +96,7 @@ import CariHesapModule from "../modules/CariHesapModule";
 import CashFlowForecast from "../modules/CashFlowForecast";
 import CompanyProfileModule from "../modules/CompanyProfileModule";
 import ContractModule from "../modules/ContractModule";
+import CustomerAddressModule from "../modules/CustomerAddressModule";
 import CustomerCreditModule from "../modules/CustomerCreditModule";
 import CustomerServiceModule from "../modules/CustomerServiceModule";
 import DataExportModule from "../modules/DataExportModule";
@@ -220,7 +222,8 @@ type Tab =
   | "returns-rma"
   | "primkomiyon"
   | "Onboarding"
-  | "okr";
+  | "okr"
+  | "customeraddress";
 
 const ALL_MODULES = [
   "HR",
@@ -789,6 +792,11 @@ export default function OwnerDashboard({
       labelKey: "okr.title",
       icon: <Target className="w-5 h-5 text-amber-400" />,
     },
+    {
+      id: "customeraddress" as Tab,
+      labelKey: "addr.title",
+      icon: <MapPin className="w-5 h-5 text-cyan-400" />,
+    },
   ];
 
   return (
@@ -1299,6 +1307,7 @@ export default function OwnerDashboard({
         )}
         {tab === "Onboarding" && <OnboardingModule />}
         {tab === "okr" && <OKRModule />}
+        {tab === "customeraddress" && <CustomerAddressModule />}
         {tab === "primkomiyon" && (
           <PrimKomisyonModule companyId={company.id} userRole="CompanyOwner" />
         )}
