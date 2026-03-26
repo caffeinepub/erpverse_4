@@ -1,23 +1,27 @@
-# ERPVerse
+# ERPVerse v86 – Müşteri İletişim Geçmişi
 
 ## Current State
-v84 with OKR Management. 84 modules implemented. CRM module has basic customer records but no address management.
+v85 is deployed. CRM module stores customers and opportunities in backend. CustomerAddressModule manages multiple addresses per customer. No communication history feature exists.
 
 ## Requested Changes (Diff)
 
 ### Add
-- CustomerAddressModule.tsx: New module for managing multiple delivery/invoice addresses per customer
-- Translations for all 8 languages (addr.* keys)
-- New nav item 'customeraddress' in OwnerDashboard
+- CustomerCommunicationModule.tsx: new module for logging and viewing customer communications (calls, emails, meetings, notes)
+- Translation keys for all 8 languages (prefix: `comm.`)
+- New `customercomm` tab in OwnerDashboard
 
 ### Modify
-- OwnerDashboard.tsx: Add import, tab type, nav item, render
-- LanguageContext.tsx: Add addr.* translations for all 8 languages
+- LanguageContext.tsx: add `comm.*` translation keys for all 8 languages
+- OwnerDashboard.tsx: add Tab type, import, navItem, and render for `customercomm`
 
 ### Remove
-- Nothing
+- Nothing removed
 
 ## Implementation Plan
-- Create CustomerAddressModule with: address list grouped by customer, type filter (delivery/invoice/general), add/edit form, default address toggle, search
-- Add translations
-- Integrate into OwnerDashboard as new tab
+1. Create CustomerCommunicationModule.tsx with:
+   - Communication types: Call, Email, Meeting, Note
+   - Fields: customer (from CRM list), type, subject, date, duration (for calls/meetings), notes, direction (inbound/outbound)
+   - List view with filters by customer and type
+   - Add/edit/delete communication records stored in localStorage (companyId scoped)
+2. Add comm.* translation keys to all 8 language objects in LanguageContext.tsx
+3. Update OwnerDashboard.tsx: add Tab, import module, add navItem under CRM group, render tab

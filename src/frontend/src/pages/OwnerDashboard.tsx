@@ -30,6 +30,7 @@ import {
   Link2,
   LogOut,
   MapPin,
+  MessageSquare,
   Package,
   Percent,
   PiggyBank,
@@ -97,6 +98,7 @@ import CashFlowForecast from "../modules/CashFlowForecast";
 import CompanyProfileModule from "../modules/CompanyProfileModule";
 import ContractModule from "../modules/ContractModule";
 import CustomerAddressModule from "../modules/CustomerAddressModule";
+import CustomerCommunicationModule from "../modules/CustomerCommunicationModule";
 import CustomerCreditModule from "../modules/CustomerCreditModule";
 import CustomerServiceModule from "../modules/CustomerServiceModule";
 import DataExportModule from "../modules/DataExportModule";
@@ -223,7 +225,8 @@ type Tab =
   | "primkomiyon"
   | "Onboarding"
   | "okr"
-  | "customeraddress";
+  | "customeraddress"
+  | "customercomm";
 
 const ALL_MODULES = [
   "HR",
@@ -797,6 +800,11 @@ export default function OwnerDashboard({
       labelKey: "addr.title",
       icon: <MapPin className="w-5 h-5 text-cyan-400" />,
     },
+    {
+      id: "customercomm" as Tab,
+      labelKey: "comm.title",
+      icon: <MessageSquare className="w-5 h-5 text-teal-400" />,
+    },
   ];
 
   return (
@@ -1308,6 +1316,7 @@ export default function OwnerDashboard({
         {tab === "Onboarding" && <OnboardingModule />}
         {tab === "okr" && <OKRModule />}
         {tab === "customeraddress" && <CustomerAddressModule />}
+        {tab === "customercomm" && <CustomerCommunicationModule />}
         {tab === "primkomiyon" && (
           <PrimKomisyonModule companyId={company.id} userRole="CompanyOwner" />
         )}
