@@ -1,27 +1,22 @@
-# ERPVerse v86 – Müşteri İletişim Geçmişi
+# ERPVerse
 
 ## Current State
-v85 is deployed. CRM module stores customers and opportunities in backend. CustomerAddressModule manages multiple addresses per customer. No communication history feature exists.
+v86 -- Müşteri İletişim Geçmişi eklendi. 85+ modül mevcut.
 
 ## Requested Changes (Diff)
 
 ### Add
-- CustomerCommunicationModule.tsx: new module for logging and viewing customer communications (calls, emails, meetings, notes)
-- Translation keys for all 8 languages (prefix: `comm.`)
-- New `customercomm` tab in OwnerDashboard
+- SurveyModule.tsx: Müşteri Memnuniyet Anketi modülü (yıldız puanlama, kategori, yorum, istatistikler)
+- 8 dil için survey.* çevirileri
+- OwnerDashboard'a "survey" tab'ı
 
 ### Modify
-- LanguageContext.tsx: add `comm.*` translation keys for all 8 languages
-- OwnerDashboard.tsx: add Tab type, import, navItem, and render for `customercomm`
+- LanguageContext.tsx: 8 dilde survey çevirileri eklendi
+- OwnerDashboard.tsx: Tab tipi, import, menü ve render güncellendi
 
 ### Remove
-- Nothing removed
+- Yok
 
 ## Implementation Plan
-1. Create CustomerCommunicationModule.tsx with:
-   - Communication types: Call, Email, Meeting, Note
-   - Fields: customer (from CRM list), type, subject, date, duration (for calls/meetings), notes, direction (inbound/outbound)
-   - List view with filters by customer and type
-   - Add/edit/delete communication records stored in localStorage (companyId scoped)
-2. Add comm.* translation keys to all 8 language objects in LanguageContext.tsx
-3. Update OwnerDashboard.tsx: add Tab, import module, add navItem under CRM group, render tab
+- SurveyModule: localStorage tabanlı, şirket izolasyonlu, 1-5 yıldız, kategori filtresi, istatistik paneli
+- OwnerDashboard entegrasyonu

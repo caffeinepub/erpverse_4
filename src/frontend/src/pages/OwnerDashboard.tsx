@@ -44,6 +44,7 @@ import {
   ShieldCheck,
   ShoppingBag,
   ShoppingCart,
+  Star,
   Tags,
   Target,
   Trash2,
@@ -143,6 +144,7 @@ import ShiftModule from "../modules/ShiftModule";
 import ShipmentTrackingModule from "../modules/ShipmentTrackingModule";
 import SupplyChainDeepModule from "../modules/SupplyChainDeepModule";
 import SupplyChainModule from "../modules/SupplyChainModule";
+import SurveyModule from "../modules/SurveyModule";
 import TaskModule from "../modules/TaskModule";
 import TimesheetModule from "../modules/TimesheetModule";
 import TradeModule from "../modules/TradeModule";
@@ -226,7 +228,8 @@ type Tab =
   | "Onboarding"
   | "okr"
   | "customeraddress"
-  | "customercomm";
+  | "customercomm"
+  | "survey";
 
 const ALL_MODULES = [
   "HR",
@@ -805,6 +808,11 @@ export default function OwnerDashboard({
       labelKey: "comm.title",
       icon: <MessageSquare className="w-5 h-5 text-teal-400" />,
     },
+    {
+      id: "survey" as Tab,
+      labelKey: "survey.title",
+      icon: <Star className="w-5 h-5 text-yellow-400" />,
+    },
   ];
 
   return (
@@ -1317,6 +1325,7 @@ export default function OwnerDashboard({
         {tab === "okr" && <OKRModule />}
         {tab === "customeraddress" && <CustomerAddressModule />}
         {tab === "customercomm" && <CustomerCommunicationModule />}
+        {tab === "survey" && <SurveyModule />}
         {tab === "primkomiyon" && (
           <PrimKomisyonModule companyId={company.id} userRole="CompanyOwner" />
         )}
