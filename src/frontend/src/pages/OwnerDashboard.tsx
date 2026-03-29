@@ -108,6 +108,7 @@ import EFaturaModule from "../modules/EFaturaModule";
 import ExpenseModule from "../modules/ExpenseModule";
 import FinancialStatementsModule from "../modules/FinancialStatementsModule";
 import HRModule from "../modules/HRModule";
+import HelpDeskModule from "../modules/HelpDeskModule";
 import InventoryModule from "../modules/InventoryModule";
 import KPIModule from "../modules/KPIModule";
 import LeaveRequestModule from "../modules/LeaveRequestModule";
@@ -145,6 +146,7 @@ import ShipmentTrackingModule from "../modules/ShipmentTrackingModule";
 import SupplyChainDeepModule from "../modules/SupplyChainDeepModule";
 import SupplyChainModule from "../modules/SupplyChainModule";
 import SurveyModule from "../modules/SurveyModule";
+import TaksitModule from "../modules/TaksitModule";
 import TaskModule from "../modules/TaskModule";
 import TimesheetModule from "../modules/TimesheetModule";
 import TradeModule from "../modules/TradeModule";
@@ -229,7 +231,9 @@ type Tab =
   | "okr"
   | "customeraddress"
   | "customercomm"
-  | "survey";
+  | "survey"
+  | "helpdesk"
+  | "taksit";
 
 const ALL_MODULES = [
   "HR",
@@ -813,6 +817,16 @@ export default function OwnerDashboard({
       labelKey: "survey.title",
       icon: <Star className="w-5 h-5 text-yellow-400" />,
     },
+    {
+      id: "helpdesk" as Tab,
+      labelKey: "helpdesk.title",
+      icon: <Headphones className="w-5 h-5 text-indigo-400" />,
+    },
+    {
+      id: "taksit" as Tab,
+      labelKey: "taksit.title",
+      icon: <CreditCard className="w-5 h-5 text-violet-400" />,
+    },
   ];
 
   return (
@@ -1326,6 +1340,8 @@ export default function OwnerDashboard({
         {tab === "customeraddress" && <CustomerAddressModule />}
         {tab === "customercomm" && <CustomerCommunicationModule />}
         {tab === "survey" && <SurveyModule />}
+        {tab === "helpdesk" && <HelpDeskModule />}
+        {tab === "taksit" && <TaksitModule />}
         {tab === "primkomiyon" && (
           <PrimKomisyonModule companyId={company.id} userRole="CompanyOwner" />
         )}

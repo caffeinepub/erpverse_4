@@ -1,22 +1,28 @@
-# ERPVerse
+# ERPVerse v89 – Taksit & Ödeme Planı
 
 ## Current State
-v86 -- Müşteri İletişim Geçmişi eklendi. 85+ modül mevcut.
+ERPVerse has 88 released versions with comprehensive ERP modules. v88 added Yardım Masası. Invoices and subscriptions exist but there is no installment/payment plan management for spreading invoice payments over time.
 
 ## Requested Changes (Diff)
 
 ### Add
-- SurveyModule.tsx: Müşteri Memnuniyet Anketi modülü (yıldız puanlama, kategori, yorum, istatistikler)
-- 8 dil için survey.* çevirileri
-- OwnerDashboard'a "survey" tab'ı
+- New module: Taksit & Ödeme Planı (Installment & Payment Plan)
+  - Create installment plans linked to customers/invoices
+  - Define total amount, number of installments, start date, frequency (monthly/weekly/biweekly)
+  - Auto-generate installment schedule (due dates + amounts)
+  - Track payment status per installment (Bekliyor / Ödendi / Gecikti)
+  - Mark individual installments as paid
+  - Summary stats: total, paid, remaining, overdue
+  - localStorage-based persistence (companyId scoped)
+- New tab in OwnerDashboard under Finance group
+- Translation keys for all UI text
 
 ### Modify
-- LanguageContext.tsx: 8 dilde survey çevirileri eklendi
-- OwnerDashboard.tsx: Tab tipi, import, menü ve render güncellendi
+- OwnerDashboard.tsx: add Tab type, menu item, and render for new module
 
 ### Remove
-- Yok
+- Nothing
 
 ## Implementation Plan
-- SurveyModule: localStorage tabanlı, şirket izolasyonlu, 1-5 yıldız, kategori filtresi, istatistik paneli
-- OwnerDashboard entegrasyonu
+1. Create TaksitModule.tsx with full CRUD UI
+2. Add tab to OwnerDashboard
