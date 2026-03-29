@@ -26,6 +26,7 @@ import {
   HardDrive,
   Hash,
   Headphones,
+  Layers,
   LayoutDashboard,
   Link2,
   LogOut,
@@ -126,6 +127,7 @@ import PhysicalInventoryModule from "../modules/PhysicalInventoryModule";
 import PriceListModule from "../modules/PriceListModule";
 import PrimKomisyonModule from "../modules/PrimKomisyonModule";
 import ProductCatalogModule from "../modules/ProductCatalogModule";
+import ProductVariantModule from "../modules/ProductVariantModule";
 import ProductionModule from "../modules/ProductionModule";
 import ProjectCostModule from "../modules/ProjectCostModule";
 import ProjectsModule from "../modules/ProjectsModule";
@@ -233,7 +235,8 @@ type Tab =
   | "customercomm"
   | "survey"
   | "helpdesk"
-  | "taksit";
+  | "taksit"
+  | "productvariants";
 
 const ALL_MODULES = [
   "HR",
@@ -827,6 +830,11 @@ export default function OwnerDashboard({
       labelKey: "taksit.title",
       icon: <CreditCard className="w-5 h-5 text-violet-400" />,
     },
+    {
+      id: "productvariants" as Tab,
+      labelKey: "productvariants.title",
+      icon: <Layers className="w-5 h-5 text-violet-400" />,
+    },
   ];
 
   return (
@@ -1342,6 +1350,7 @@ export default function OwnerDashboard({
         {tab === "survey" && <SurveyModule />}
         {tab === "helpdesk" && <HelpDeskModule />}
         {tab === "taksit" && <TaksitModule />}
+        {tab === "productvariants" && <ProductVariantModule />}
         {tab === "primkomiyon" && (
           <PrimKomisyonModule companyId={company.id} userRole="CompanyOwner" />
         )}

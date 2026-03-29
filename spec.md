@@ -1,28 +1,26 @@
-# ERPVerse v89 – Taksit & Ödeme Planı
+# ERPVerse v90 – Ürün Varyant Yönetimi
 
 ## Current State
-ERPVerse has 88 released versions with comprehensive ERP modules. v88 added Yardım Masası. Invoices and subscriptions exist but there is no installment/payment plan management for spreading invoice payments over time.
+v89 itibarıyla ERPVerse'de Ürün/Hizmet Kataloğu mevcut. Ürünler tek tip olarak tanımlanıyor; aynı ürünün farklı beden, renk veya özellik kombinasyonları için ayrı varyant yönetimi yok.
 
 ## Requested Changes (Diff)
 
 ### Add
-- New module: Taksit & Ödeme Planı (Installment & Payment Plan)
-  - Create installment plans linked to customers/invoices
-  - Define total amount, number of installments, start date, frequency (monthly/weekly/biweekly)
-  - Auto-generate installment schedule (due dates + amounts)
-  - Track payment status per installment (Bekliyor / Ödendi / Gecikti)
-  - Mark individual installments as paid
-  - Summary stats: total, paid, remaining, overdue
-  - localStorage-based persistence (companyId scoped)
-- New tab in OwnerDashboard under Finance group
-- Translation keys for all UI text
+- Ürün Varyant Yönetimi modülü: ürünlere varyant grubu (beden, renk, materyal vb.) ve varyant seçenekleri (S/M/L/XL, Kırmızı/Mavi vb.) tanımlama
+- Her varyant kombinasyonu için SKU, fiyat ve stok miktarı girişi
+- Varyant listesi tablosu: varyant kodu, değerleri, fiyat, stok, durum
+- Ürün bazlı varyant özeti (kaç varyant, toplam stok)
+- Tüm UI metinleri t() ile çevrilebilir
 
 ### Modify
-- OwnerDashboard.tsx: add Tab type, menu item, and render for new module
+- Sol menüde "Ürün Varyantları" sekmesi olarak eklenir (Envanter veya Katalog grubunda)
 
 ### Remove
-- Nothing
+- Yok
 
 ## Implementation Plan
-1. Create TaksitModule.tsx with full CRUD UI
-2. Add tab to OwnerDashboard
+1. ProductVariantManagement bileşeni oluştur
+2. Varyant grubu tanımlama formu (grup adı + seçenekler)
+3. Varyant kombinasyonu tablosu (SKU, fiyat, stok)
+4. localStorage ile company-isolated veri saklama
+5. Menüye ekleme (Owner ve yetkili personel)
